@@ -32,7 +32,7 @@ object SAStoCSV extends Logging {
       case (row, i) =>
         csvDataWriter.writeRow(sasFileReader.getColumns, row)
 
-        if (rowCount % 10000 == 0) {
+        if (i % 10000 == 0) {
           logInfo(s"${i * 100 / rowCount} % ($i/$rowCount)")
         }
     }
