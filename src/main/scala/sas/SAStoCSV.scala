@@ -1,6 +1,6 @@
 package sas
 
-import java.io.{BufferedInputStream, File, FileInputStream, StringWriter}
+import java.io._
 
 import com.ggasoftware.parso.{CSVDataWriter, SasFileReader}
 import org.apache.spark.Logging
@@ -13,11 +13,11 @@ object SAStoCSV extends Logging {
   def main(args: Array[String]): Unit = {
     logInfo(args.mkString(" "))
 
-    val input = new File(args.head)
+    val input = new File(args(0))
     val inputStream = new BufferedInputStream(new FileInputStream(input))
     val sasFileReader = new SasFileReader(inputStream)
 
-    val writer = new StringWriter()
+    val writer = new FileWriter(args(1))
     val csvDataWriter = new CSVDataWriter(writer)
 
     csvDataWriter.writeColumnNames(sasFileReader.getColumns)
