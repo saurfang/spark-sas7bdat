@@ -21,12 +21,22 @@ object SAStoCSV extends Logging {
     val csvDataWriter = new CSVDataWriter(writer)
 
     csvDataWriter.writeColumnNames(sasFileReader.getColumns)
+
+    val nrow = sasFileReader.getSasFileProperties.getRowCount
+    var rowCount = 0
+
     Iterator
       .continually(sasFileReader.readNext())
       .takeWhile(_ != null)
-      .foreach(
-        csvDataWriter.writeRow(sasFileReader.getColumns, _)
-      )
+      .foreach {
+      row =>
+        csvDataWriter.writeRow(sasFileReader.getColumns, row)
+
+        rowCount += 1
+        if (rowCount % 10000 == 0) {
+          logInfo(s"${rowCount * 100 / nrow} % ($rowCount/$nrow)")
+        }
+    }
 
     writer.close()
     inputStream.close()
