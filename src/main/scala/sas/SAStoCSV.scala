@@ -22,19 +22,18 @@ object SAStoCSV extends Logging {
 
     csvDataWriter.writeColumnNames(sasFileReader.getColumns)
 
-    val nrow = sasFileReader.getSasFileProperties.getRowCount
-    var rowCount = 0
+    val rowCount = sasFileReader.getSasFileProperties.getRowCount
 
-    Iterator
+    Stream
       .continually(sasFileReader.readNext())
       .takeWhile(_ != null)
+      .zipWithIndex
       .foreach {
-      row =>
+      case (row, i) =>
         csvDataWriter.writeRow(sasFileReader.getColumns, row)
 
-        rowCount += 1
         if (rowCount % 10000 == 0) {
-          logInfo(s"${rowCount * 100 / nrow} % ($rowCount/$nrow)")
+          logInfo(s"${i * 100 / rowCount} % ($i/$rowCount)")
         }
     }
 
