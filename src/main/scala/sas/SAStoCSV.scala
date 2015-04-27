@@ -24,7 +24,7 @@ object SAStoCSV extends Logging {
 
     val rowCount = sasFileReader.getSasFileProperties.getRowCount
 
-    Stream
+    Iterator
       .continually(sasFileReader.readNext())
       .takeWhile(_ != null)
       .zipWithIndex
