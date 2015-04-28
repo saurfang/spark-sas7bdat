@@ -1,6 +1,6 @@
 package sas.spark
 
-import com.ggasoftware.parso.{Column, SasFileReader}
+import com.ggasoftware.parso.{SasFileConstants, Column, SasFileReader}
 import org.apache.hadoop.fs.{FileSystem, Path}
 import org.apache.hadoop.io.NullWritable
 import org.apache.hadoop.mapreduce.Job
@@ -10,7 +10,7 @@ import org.apache.spark.rdd.NewHadoopRDD
 import org.apache.spark.sql.SQLContext
 import org.apache.spark.sql.catalyst.expressions._
 import org.apache.spark.sql.sources.{BaseRelation, TableScan}
-import org.apache.spark.sql.types.{DoubleType, StringType, StructField, StructType}
+import org.apache.spark.sql.types._
 import sas.mapreduce.SasInputFormat
 
 import scala.util.control.NonFatal
@@ -59,6 +59,7 @@ case class SasRelation protected[spark](
           while (index < schemaFields.length) {
             row(index) = records(index) match {
               case x: java.lang.Long => x.toDouble //TODO: Confirm SAS don't differentiate between Long and Double
+              case x: java.util.Date => new java.sql.Date(x.getTime)
               case x => x
             }
             index = index + 1
@@ -89,7 +90,17 @@ case class SasRelation protected[spark](
       val inputStream = fs.open(new Path(location))
       val sasFileReader = new SasFileReader(inputStream)
       val schemaFields = sasFileReader.getColumns.toArray(Array.empty[Column]).map { column =>
-        StructField(column.getName, if (column.getType == classOf[Number]) DoubleType else StringType, nullable = true)
+        val columnType =
+          if (column.getType == classOf[Number]) {
+            if(SasFileConstants.DATE_TIME_FORMAT_STRINGS.contains(column.getFormat) ||
+              SasFileConstants.DATE_FORMAT_STRINGS.contains(column.getFormat))
+              TimestampType
+            else
+              DoubleType
+          } else {
+            StringType
+          }
+        StructField(column.getName, columnType, nullable = true)
       }
       inputStream.close()
       StructType(schemaFields)

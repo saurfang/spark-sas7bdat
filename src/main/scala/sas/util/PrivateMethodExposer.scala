@@ -20,12 +20,12 @@ class PrivateMethodCaller(x: AnyRef, methodName: String) {
 case class PrivateMethodExposer(x: AnyRef) {
   def apply(method: scala.Symbol): PrivateMethodCaller = new PrivateMethodCaller(x, method.name)
 
-  def get(member: scala.Symbol): Any = {
+  def get[T](member: scala.Symbol): T = {
     def _parents: Stream[Class[_]] = Stream(x.getClass) #::: _parents.map(_.getSuperclass)
     val parents = _parents.takeWhile(_ != null).toList
     val fields = parents.flatMap(_.getDeclaredFields)
     val field = fields.find(_.getName == member.name).getOrElse(throw new IllegalArgumentException("Field " + member.name + " not found"))
     field.setAccessible(true)
-    field.get(x)
+    field.get(x).asInstanceOf[T]
   }
 }

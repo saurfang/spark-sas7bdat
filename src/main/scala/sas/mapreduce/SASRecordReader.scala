@@ -2,7 +2,7 @@ package sas.mapreduce
 
 import java.io.IOException
 
-import com.ggasoftware.parso.{SasFileParser, SasFileProperties}
+import com.ggasoftware.parso.{SasFileConstants, SasFileParser, SasFileProperties}
 import org.apache.commons.io.input.CountingInputStream
 import org.apache.hadoop.fs.FSDataInputStream
 import org.apache.hadoop.io.NullWritable
@@ -110,21 +110,23 @@ class SasRecordReader() extends RecordReader[NullWritable, Array[Object]] with L
   private def getPartialPageLength(pos: Long) = (pos - sasFileProperties.getHeaderLength) % sasFileProperties.getPageLength
 
   override def nextKeyValue(): Boolean = {
-    // read a record if the currentPosition is less than the split end
-    if (currentPosition < splitEnd - splitStart) {
+    lazy val readNext = {
       recordValue = sasFileReaderPrivateExposer('readNext)().asInstanceOf[Array[Object]]
 
       recordCount += (if (recordValue != null) 1 else 0)
       recordValue != null
-    } else if (splitStart + currentPosition >= maxPagePosition) {
-      // be especially careful about last page
-      lastPageBlockCount += 1
-      if(lastPageBlockCount <= sasFileReaderPrivateExposer.get('currentPageBlockCount).asInstanceOf[Int]) {
-        recordValue = sasFileReaderPrivateExposer('readNext)().asInstanceOf[Array[Object]]
+    }
 
-        recordCount += (if (recordValue != null) 1 else 0)
-        recordValue != null
-      }else{
+    // read a record if the currentPosition is less than the split end
+    if (currentPosition < splitEnd - splitStart) {
+      readNext
+    } else if (splitStart + currentPosition >= maxPagePosition &&
+      sasFileReaderPrivateExposer.get[Int]('currentPageType) != SasFileConstants.PAGE_META_TYPE) {
+      // be especially careful about last page
+      if (lastPageBlockCount < sasFileReaderPrivateExposer.get[Int]('currentPageBlockCount)) {
+        lastPageBlockCount += 1
+        readNext
+      } else {
         false
       }
     } else {
