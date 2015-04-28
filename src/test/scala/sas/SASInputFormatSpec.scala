@@ -20,7 +20,6 @@ class SASInputFormatSpec extends FlatSpec with Matchers with Logging {
     FileInputFormat.setMinInputSplitSize(job, BLOCK_SIZE)
     val path = new Path(getClass.getResource("/random.sas7bdat").getPath)
     FileInputFormat.setInputPaths(job, path)
-    SASInputFormat.initialize(job)
 
     val fileStatus = FileSystem.get(jobConf).getFileStatus(path)
     logInfo(s"Block Size: ${fileStatus.getBlockSize}")
