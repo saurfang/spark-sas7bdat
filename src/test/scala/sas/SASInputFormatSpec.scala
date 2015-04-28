@@ -7,12 +7,12 @@ import org.apache.hadoop.mapreduce.lib.input.FileInputFormat
 import org.apache.spark.rdd.NewHadoopRDD
 import org.apache.spark.{Logging, SparkConf, SparkContext}
 import org.scalatest._
-import sas.mapreduce.SASInputFormat
+import sas.mapreduce.SasInputFormat
 
-class SASInputFormatSpec extends FlatSpec with Matchers with Logging {
+class SasInputFormatSpec extends FlatSpec with Matchers with Logging {
   val BLOCK_SIZE = 3 * 1024 * 1024
 
-  "SASInputFormat" should "read meta information ahead of time" in {
+  "SASInputFormat" should "read correct number of observations" in {
     val sc = new SparkContext(new SparkConf().setMaster("local[2]").setAppName("SASInputFormat"))
     val job = Job.getInstance
     val jobConf = job.getConfiguration
@@ -26,7 +26,7 @@ class SASInputFormatSpec extends FlatSpec with Matchers with Logging {
 
     val sasRDD = new NewHadoopRDD[NullWritable, Array[Object]](
       sc,
-      classOf[SASInputFormat],
+      classOf[SasInputFormat],
       classOf[NullWritable],
       classOf[Array[Object]],
       jobConf
@@ -34,6 +34,6 @@ class SASInputFormatSpec extends FlatSpec with Matchers with Logging {
 
     sasRDD.count() should ===(1000000)
 
-    true should ===(true)
+    sc.stop()
   }
 }

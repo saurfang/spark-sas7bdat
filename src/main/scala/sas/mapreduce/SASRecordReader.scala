@@ -16,7 +16,7 @@ import sas.util.PrivateMethodExposer
 /**
  * Created by forest on 4/27/15.
  */
-class SASRecordReader() extends RecordReader[NullWritable, Array[Object]] with Logging {
+class SasRecordReader() extends RecordReader[NullWritable, Array[Object]] with Logging {
   private lazy val sasFileProperties: SasFileProperties = sasFileReaderPrivateExposer('getSasFileProperties)().asInstanceOf[SasFileProperties]
   private lazy val maxPagePosition: Long = sasFileProperties.getHeaderLength + sasFileProperties.getPageCount * sasFileProperties.getPageLength
   private var splitStart: Long = 0L

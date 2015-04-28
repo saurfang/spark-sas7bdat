@@ -9,12 +9,12 @@ import org.apache.hadoop.mapreduce.lib.input.FileInputFormat
 /**
  * Created by forest on 4/27/15.
  */
-class SASInputFormat extends FileInputFormat[NullWritable, Array[Object]] {
+class SasInputFormat extends FileInputFormat[NullWritable, Array[Object]] {
   override def createRecordReader(
                                    inputSplit: InputSplit,
                                    taskAttemptContext: TaskAttemptContext
                                    ): RecordReader[NullWritable, Array[Object]] = {
-    new SASRecordReader()
+    new SasRecordReader()
   }
 
   override def isSplitable(context: JobContext, file: Path): Boolean = {
