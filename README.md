@@ -43,6 +43,13 @@ val cars = sqlContext.sasFile("cars.sas7bdat")
 cars.select("year", "model").saveAsCsvFile("newcars.tsv")
 ```
 
+### SAStoCSV Runner
+We also included a simple `SAStoCSV` Spark program that converts .sas7bdat to .csv file:
+
+```bash
+sbt "run input.sas7bdat output.csv"
+```
+
 ## Related Work
 
 * [spark-csv](https://github.com/databricks/spark-csv)

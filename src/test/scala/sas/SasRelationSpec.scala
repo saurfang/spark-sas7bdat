@@ -12,7 +12,7 @@ class SasRelationSpec extends FlatSpec with Matchers with Logging {
   val BLOCK_SIZE = 3 * 1024 * 1024
 
   "SASReltion" should "read SAS data exactly correct" in {
-    val sc = new SparkContext(new SparkConf().setMaster("local[2]").setAppName("SASRelation").set("spark.serializer", "org.apache.spark.serializer.KryoSerializer"))
+    val sc = new SparkContext(new SparkConf().setMaster("local[2]").setAppName("SASRelation"))
     val sqlContext = new SQLContext(sc)
 
     val job = Job.getInstance
