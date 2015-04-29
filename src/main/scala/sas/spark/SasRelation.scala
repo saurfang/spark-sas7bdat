@@ -66,7 +66,7 @@ case class SasRelation protected[spark](
                 schemaFields(index).dataType match {
                   case TimestampType => new java.sql.Timestamp(x.getTime)
                   case _ =>
-                    val dateFormat = new SimpleDateFormat("yyyyMMdd", Locale.getDefault())
+                    val dateFormat = new SimpleDateFormat("yyyy-MM-dd")
                     dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"))
                     dateFormat.format(x)
                 }
