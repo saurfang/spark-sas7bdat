@@ -1,6 +1,9 @@
 package sas.spark
 
-import com.ggasoftware.parso.{SasFileConstants, Column, SasFileReader}
+import java.text.SimpleDateFormat
+import java.util.{Locale, TimeZone}
+
+import com.ggasoftware.parso.{Column, SasFileConstants, SasFileReader}
 import org.apache.hadoop.fs.{FileSystem, Path}
 import org.apache.hadoop.io.NullWritable
 import org.apache.hadoop.mapreduce.Job
@@ -58,8 +61,15 @@ case class SasRelation protected[spark](
 
           while (index < schemaFields.length) {
             row(index) = records(index) match {
-              case x: java.lang.Long => x.toDouble //TODO: Confirm SAS don't differentiate between Long and Double
-              case x: java.util.Date => new java.sql.Date(x.getTime)
+              case x: java.lang.Long => x.toDouble //TODO: Confirm SAS doesn't differentiate between Long and Double
+              case x: java.util.Date =>
+                schemaFields(index).dataType match {
+                  case TimestampType => new java.sql.Timestamp(x.getTime)
+                  case _ =>
+                    val dateFormat = new SimpleDateFormat("yyyyMMdd", Locale.getDefault())
+                    dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"))
+                    dateFormat.format(x)
+                }
               case x => x
             }
             index = index + 1
@@ -92,9 +102,10 @@ case class SasRelation protected[spark](
       val schemaFields = sasFileReader.getColumns.toArray(Array.empty[Column]).map { column =>
         val columnType =
           if (column.getType == classOf[Number]) {
-            if(SasFileConstants.DATE_TIME_FORMAT_STRINGS.contains(column.getFormat) ||
-              SasFileConstants.DATE_FORMAT_STRINGS.contains(column.getFormat))
+            if (SasFileConstants.DATE_TIME_FORMAT_STRINGS.contains(column.getFormat))
               TimestampType
+            else if (SasFileConstants.DATE_FORMAT_STRINGS.contains(column.getFormat))
+              StringType //TODO: Change to DateType when parquet supports it
             else
               DoubleType
           } else {
