@@ -20,7 +20,7 @@ This package allows reading SAS files in local or distributed filesystem as [Spa
 Schema is automatically inferred from metainfo embedded in the SAS file.
 
 ### Scala API
-The recommended way to load SAS data is using the load/save functions in SQLContext.
+The recommended way to load SAS data is using the load functions in SQLContext.
 
 ```scala
 import org.apache.spark.sql.SQLContext

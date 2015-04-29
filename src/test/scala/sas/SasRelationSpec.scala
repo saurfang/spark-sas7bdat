@@ -32,7 +32,7 @@ class SasRelationSpec extends FlatSpec with Matchers with Logging {
     import TolerantNumerics._
     implicit val dblEquality = tolerantDoubleEquality(SasFileConstants.EPSILON)
 
-    randomDF.collect().sortBy(_.getDouble(0)).zip(referenceDF.collect().sortBy(_.getString(0).toDouble)).foreach {
+    randomDF.collect().zip(referenceDF.collect()).foreach {
       case (row1, row2) =>
         row1.getDouble(0) should ===(row2.getString(0).toDouble)
         row1.getDouble(1).toLong should ===(row2.getString(1).toLong)
