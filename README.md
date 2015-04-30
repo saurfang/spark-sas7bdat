@@ -6,7 +6,8 @@ thus can achieve high parallelism for a large SAS file.
 
 This library is inspired by [spark-csv](https://github.com/databricks/spark-csv) and 
 currently uses [parso](http://scitouch.net/opensource/parso) for parsing as it is the only public available parser
-that handles both forms of SAS compression (CHAR and Binary). 
+that handles both forms of SAS compression (CHAR and Binary). Note *parso* is licensed under GPL-3 and subsequently
+this library is also licensed as such.
 
 [![Build Status](https://travis-ci.org/saurfang/spark-sas7bdat.svg?branch=master)](https://travis-ci.org/saurfang/spark-sas7bdat)
 
@@ -43,8 +44,8 @@ val cars = sqlContext.sasFile("cars.sas7bdat")
 cars.select("year", "model").saveAsCsvFile("newcars.tsv")
 ```
 
-### SAStoCSV Runner
-We also included a simple `SAStoCSV` Spark program that converts .sas7bdat to .csv file:
+### SAS Export Runner
+We also included a simple `SasExport` Spark program that converts *.sas7bdat* to *.csv* or *.parquet* file:
 
 ```bash
 sbt "run input.sas7bdat output.csv"
@@ -54,6 +55,5 @@ sbt "run input.sas7bdat output.csv"
 
 * [spark-csv](https://github.com/databricks/spark-csv)
 * [parso](http://scitouch.net/opensource/parso)
-* [haven](https://github.com/hadley/haven)
 * [ReadStat](https://github.com/WizardMac/ReadStat)
 * [SAS7BDAT Database Binary Format](http://www2.uaem.mx/r-mirror/web/packages/sas7bdat/vignettes/sas7bdat.pdf)
