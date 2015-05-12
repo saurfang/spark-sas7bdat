@@ -19,6 +19,7 @@ import sas.util.PrivateMethodExposer
 class SasRecordReader() extends RecordReader[NullWritable, Array[Object]] with Logging {
   private lazy val sasFileProperties: SasFileProperties = sasFileReaderPrivateExposer('getSasFileProperties)().asInstanceOf[SasFileProperties]
   private lazy val maxPagePosition: Long = sasFileProperties.getHeaderLength + sasFileProperties.getPageCount * sasFileProperties.getPageLength
+  private lazy val lastPageBlockCount: Int = sasFileReaderPrivateExposer.get[Int]('currentPageBlockCount)
   private var splitStart: Long = 0L
   private var splitEnd: Long = 0L
   private var fileInputStream: FSDataInputStream = null
@@ -26,11 +27,11 @@ class SasRecordReader() extends RecordReader[NullWritable, Array[Object]] with L
   private var sasFileReader: SasFileParser = null
   private var sasFileReaderPrivateExposer: PrivateMethodExposer = null
   private var recordCount: Int = 0
-  private var lastPageBlockCount: Int = 0
+  private var lastPageBlockCounter: Int = 0
   private var recordValue: Array[Object] = null
 
   override def close() {
-    logInfo(s"Read $currentPosition bytes and $recordCount records ($lastPageBlockCount on last page).")
+    logInfo(s"Read $currentPosition bytes and $recordCount records ($lastPageBlockCounter/$lastPageBlockCount on last page).")
     if (countingInputStream != null) {
       countingInputStream.close()
     }
@@ -81,6 +82,8 @@ class SasRecordReader() extends RecordReader[NullWritable, Array[Object]] with L
     sasFileReader = new SasFileParser.Builder().sasFileStream(countingInputStream).build() // new SasFileReader(countingInputStream)
     sasFileReaderPrivateExposer = PrivateMethodExposer(sasFileReader)
 
+    logInfo(sasFileProperties.toString)
+
     // align splitEnd to pages
     // only shrink splitEnd if this is the first split or the split starts after meta data
     val partialPageLength = getPartialPageLength(splitEnd)
@@ -112,7 +115,6 @@ class SasRecordReader() extends RecordReader[NullWritable, Array[Object]] with L
   override def nextKeyValue(): Boolean = {
     lazy val readNext = {
       recordValue = sasFileReaderPrivateExposer('readNext)().asInstanceOf[Array[Object]]
-
       recordCount += (if (recordValue != null) 1 else 0)
       recordValue != null
     }
@@ -120,11 +122,15 @@ class SasRecordReader() extends RecordReader[NullWritable, Array[Object]] with L
     // read a record if the currentPosition is less than the split end
     if (currentPosition < splitEnd - splitStart) {
       readNext
-    } else if (splitStart + currentPosition >= maxPagePosition &&
-      sasFileReaderPrivateExposer.get[Int]('currentPageType) != SasFileConstants.PAGE_META_TYPE) {
+    } else if (
       // be especially careful about last page
-      if (lastPageBlockCount < sasFileReaderPrivateExposer.get[Int]('currentPageBlockCount)) {
-        lastPageBlockCount += 1
+      splitStart + currentPosition >= maxPagePosition &&
+        // but don't get stuck on end of the file
+        !(sasFileReaderPrivateExposer.get[Int]('currentPageType) == SasFileConstants.PAGE_META_TYPE &&
+          sasFileReaderPrivateExposer.get[java.util.List[_]]('currentPageDataSubheaderPointers).size == 0)
+    ) {
+      if (lastPageBlockCounter < lastPageBlockCount) {
+        lastPageBlockCounter += 1
         readNext
       } else {
         false

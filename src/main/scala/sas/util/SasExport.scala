@@ -25,7 +25,7 @@ object SasExport extends Logging {
     val output = args(1)
     if (output.endsWith(".csv")) {
       import com.databricks.spark.csv._
-      df.saveAsCsvFile(args(1), Map("header" -> "true"))
+      df.saveAsCsvFile(output, Map("header" -> "true"))
     } else if (output.endsWith(".parquet")) {
       df.saveAsParquetFile(output)
     }
