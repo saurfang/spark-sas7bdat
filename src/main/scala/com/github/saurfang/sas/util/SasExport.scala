@@ -1,10 +1,12 @@
-package sas.util
+package com.github.saurfang.sas.util
 
 import org.apache.spark.sql.SQLContext
 import org.apache.spark.{Logging, SparkConf, SparkContext}
 
 /**
- * Export sas7bdat file to parquet/csv
+ * Export sas7bdat file to parquet/csv.
+ * First argument is the input file. Second argument is the output path.
+ * Output type is determined by the extension (.csv or .parquet)
  */
 object SasExport extends Logging {
 
@@ -19,7 +21,7 @@ object SasExport extends Logging {
     val sc = new SparkContext(sparkConf)
     val sqlContext = new SQLContext(sc)
 
-    import sas.spark._
+    import com.github.saurfang.sas.spark._
     val df = sqlContext.sasFile(args(0))
 
     val output = args(1)

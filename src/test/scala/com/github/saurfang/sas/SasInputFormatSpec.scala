@@ -1,5 +1,6 @@
-package sas
+package com.github.saurfang.sas
 
+import com.github.saurfang.sas.mapreduce.SasInputFormat
 import org.apache.hadoop.fs.{FileSystem, Path}
 import org.apache.hadoop.io.NullWritable
 import org.apache.hadoop.mapreduce.Job
@@ -7,7 +8,7 @@ import org.apache.hadoop.mapreduce.lib.input.FileInputFormat
 import org.apache.spark.rdd.NewHadoopRDD
 import org.apache.spark.{Logging, SparkConf, SparkContext}
 import org.scalatest._
-import sas.mapreduce.SasInputFormat
+import com.github.saurfang.sas.mapreduce.SasInputFormat
 
 class SasInputFormatSpec extends FlatSpec with Matchers with Logging {
   val BLOCK_SIZE = 3 * 1024 * 1024

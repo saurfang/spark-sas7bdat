@@ -1,9 +1,10 @@
-package sas.spark
+package com.github.saurfang.sas.spark
 
 import java.text.SimpleDateFormat
-import java.util.{Locale, TimeZone}
+import java.util.TimeZone
 
 import com.ggasoftware.parso.{Column, SasFileConstants, SasFileReader}
+import com.github.saurfang.sas.mapreduce.SasInputFormat
 import org.apache.hadoop.fs.{FileSystem, Path}
 import org.apache.hadoop.io.NullWritable
 import org.apache.hadoop.mapreduce.Job
@@ -14,12 +15,12 @@ import org.apache.spark.sql.SQLContext
 import org.apache.spark.sql.catalyst.expressions._
 import org.apache.spark.sql.sources.{BaseRelation, TableScan}
 import org.apache.spark.sql.types._
-import sas.mapreduce.SasInputFormat
 
 import scala.util.control.NonFatal
 
 /**
- * Created by forest on 4/27/15.
+ * Defines a RDD that is backed by [[SasInputFormat]]. Data are coerced into approriate types according to
+ * meta information embedded in .sas7bdat file.
  */
 case class SasRelation protected[spark](
                                          location: String,
@@ -61,7 +62,10 @@ case class SasRelation protected[spark](
 
           while (index < schemaFields.length) {
             row(index) = records(index) match {
-              case x: java.lang.Long => x.toDouble //TODO: Confirm SAS doesn't differentiate between Long and Double
+              //SAS itself only has double as its numeric type.
+              //Hence we can't infer Long/Integer type ahead of time therefore we convert it back to Double
+              case x: java.lang.Long => x.toDouble
+              //TODO: Return proper Date object once SparkSQL/parquet adds support for DateType
               case x: java.util.Date =>
                 schemaFields(index).dataType match {
                   case TimestampType => new java.sql.Timestamp(x.getTime)

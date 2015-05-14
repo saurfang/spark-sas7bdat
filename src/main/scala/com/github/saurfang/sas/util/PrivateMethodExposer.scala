@@ -1,9 +1,4 @@
-package sas.util
-
-// Use this to invoke private methods in [[com.ggasoftware.parso.SasFileParser]] so we don't need to modify it
-// Credits to https://gist.github.com/jorgeortiz85/908035
-// Usage:
-//   p(instance)('privateMethod)(arg1, arg2, arg3)
+package com.github.saurfang.sas.util
 
 class PrivateMethodCaller(x: AnyRef, methodName: String) {
   def apply(_args: Any*): Any = {
@@ -17,6 +12,13 @@ class PrivateMethodCaller(x: AnyRef, methodName: String) {
   }
 }
 
+/**
+ *
+ * Use this to invoke private methods in [[com.ggasoftware.parso.SasFileParser]] so we don't need to modify it
+ * Credits to https://gist.github.com/jorgeortiz85/908035
+ * Usage:
+ *  p(instance)('privateMethod)(arg1, arg2, arg3)
+ */
 case class PrivateMethodExposer(x: AnyRef) {
   def apply(method: scala.Symbol): PrivateMethodCaller = new PrivateMethodCaller(x, method.name)
 

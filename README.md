@@ -18,7 +18,7 @@ This library requires Spark 1.3+
 ## Features
 
 This package allows reading SAS files in local or distributed filesystem as [Spark DataFrames](https://spark.apache.org/docs/1.3.0/sql-programming-guide.html).
-Schema is automatically inferred from metainfo embedded in the SAS file.
+Schema is automatically inferred from meta information embedded in the SAS file.
 
 ### Scala API
 The recommended way to load SAS data is using the load functions in SQLContext.
@@ -27,16 +27,16 @@ The recommended way to load SAS data is using the load functions in SQLContext.
 import org.apache.spark.sql.SQLContext
 
 val sqlContext = new SQLContext(sc)
-val df = sqlContext.load("sas.spark", Map("path" -> "cars.sas7bdat"))
+val df = sqlContext.load("com.github.saurfang.sas.sas.spark", Map("path" -> "cars.sas7bdat"))
 df.select("year", "model").save("newcars.csv", "com.databricks.spark.csv")
 ```
 
-You can also use the implicits from `import sas.spark._`.
+You can also use the implicits from `import com.github.saurfang.sas.sas.spark._`.
 
 ```scala
 import org.apache.spark.sql.SQLContext
 import com.databricks.spark.csv._
-import sas.spark._
+import com.github.saurfang.sas.sas.spark._
 
 val sqlContext = new SQLContext(sc)
 
@@ -44,12 +44,21 @@ val cars = sqlContext.sasFile("cars.sas7bdat")
 cars.select("year", "model").saveAsCsvFile("newcars.tsv")
 ```
 
-### SAS Export Runner
+## SAS Export Runner
 We also included a simple `SasExport` Spark program that converts *.sas7bdat* to *.csv* or *.parquet* file:
 
 ```bash
 sbt "run input.sas7bdat output.csv"
+sbt "run input.sas7bdat output.parquet"
 ```
+
+### Caveats
+
+1. `spark-csv` writes out `null` as "null" in csv text output. This means if you read it back for a string type,
+you might actually read "null" instead of `null`. The safest option is to export in parquet format where
+null is properly recorded.
+2. The version of parquet used in SparkSQL 1.3.0 don't support date type. Hence date are coerced into
+string with yyyy-MM-dd format.
 
 ## Related Work
 

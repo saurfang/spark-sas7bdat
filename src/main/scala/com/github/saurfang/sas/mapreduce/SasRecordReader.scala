@@ -1,4 +1,4 @@
-package sas.mapreduce
+package com.github.saurfang.sas.mapreduce
 
 import java.io.IOException
 
@@ -11,10 +11,11 @@ import org.apache.hadoop.mapreduce.lib.input.FileSplit
 import org.apache.hadoop.mapreduce.{InputSplit, RecordReader, TaskAttemptContext}
 import org.apache.spark.Logging
 import org.apache.spark.deploy.SparkHadoopUtil
-import sas.util.PrivateMethodExposer
+import com.github.saurfang.sas.util.PrivateMethodExposer
 
 /**
- * Created by forest on 4/27/15.
+ * An [[RecordReader]] for [[SasInputFormat]]. Each split is aligned to page sized specified in the .sas7bdat meta info.
+ * Each split looks back previous split if the start of split is incomplete.
  */
 class SasRecordReader() extends RecordReader[NullWritable, Array[Object]] with Logging {
   private lazy val sasFileProperties: SasFileProperties = sasFileReaderPrivateExposer('getSasFileProperties)().asInstanceOf[SasFileProperties]

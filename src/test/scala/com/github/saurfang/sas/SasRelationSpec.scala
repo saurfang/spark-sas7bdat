@@ -1,4 +1,4 @@
-package sas
+package com.github.saurfang.sas
 
 import com.ggasoftware.parso.SasFileConstants
 import org.apache.hadoop.mapreduce.Job
@@ -20,7 +20,7 @@ class SasRelationSpec extends FlatSpec with Matchers with Logging {
     jobConf.setInt("fs.local.block.size", BLOCK_SIZE)
     FileInputFormat.setMinInputSplitSize(job, BLOCK_SIZE)
 
-    import sas.spark._
+    import com.github.saurfang.sas.spark._
     val randomDF = sqlContext.sasFile(getClass.getResource("/random.sas7bdat").getPath, job).cache()
     randomDF.printSchema()
 
@@ -45,7 +45,7 @@ class SasRelationSpec extends FlatSpec with Matchers with Logging {
     val sc = new SparkContext(new SparkConf().setMaster("local[2]").setAppName("SASRelation"))
     val sqlContext = new SQLContext(sc)
 
-    import sas.spark._
+    import com.github.saurfang.sas.spark._
     val dtDF = sqlContext.sasFile(getClass.getResource("/datetime.sas7bdat").getPath).cache()
     dtDF.printSchema()
 
