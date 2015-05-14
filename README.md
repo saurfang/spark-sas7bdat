@@ -45,13 +45,14 @@ You can also use the implicits from `import com.github.saurfang.sas.sas.spark._`
 
 ```scala
 import org.apache.spark.sql.SQLContext
-import com.databricks.spark.csv._
-import com.github.saurfang.sas.sas.spark._
+import com.github.saurfang.sas.spark._
 
 val sqlContext = new SQLContext(sc)
 
 val cars = sqlContext.sasFile("cars.sas7bdat")
-cars.select("year", "model").saveAsCsvFile("newcars.tsv")
+
+import com.databricks.spark.csv._
+cars.select("year", "model").saveAsCsvFile("newcars.csv")
 ```
 
 ## SAS Export Runner
@@ -60,6 +61,27 @@ We also included a simple `SasExport` Spark program that converts *.sas7bdat* to
 ```bash
 sbt "run input.sas7bdat output.csv"
 sbt "run input.sas7bdat output.parquet"
+```
+
+To achieve more parallelism, use `spark-submit` script to run it on a Spark cluster. If you don't have a spark
+cluster, you can always run it in local mode and take advantage of multi-core.
+
+For further flexibility, you can use `spark-shell`:
+
+```bash
+spark-shell --master local[4] --packages saurfang:spark-sas7bdat:1.0.0-s_2.10
+```
+ 
+In the shell you can do data analysis like:
+
+```scala
+import com.github.saurfang.sas.spark._
+val random = sqlContext.sasFile("src/test/resources/random.sas7bdat").cache
+//random: org.apache.spark.sql.DataFrame = [x: double, f: double]
+random.count
+//res13: Long = 1000000
+random.filter("x > 0.4").count
+//res14: Long = 599501
 ```
 
 ### Caveats
