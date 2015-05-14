@@ -37,11 +37,11 @@ The recommended way to load SAS data is using the load functions in SQLContext.
 import org.apache.spark.sql.SQLContext
 
 val sqlContext = new SQLContext(sc)
-val df = sqlContext.load("com.github.saurfang.sas.sas.spark", Map("path" -> "cars.sas7bdat"))
+val df = sqlContext.load("com.github.saurfang.sas.spark", Map("path" -> "cars.sas7bdat"))
 df.select("year", "model").save("newcars.csv", "com.databricks.spark.csv")
 ```
 
-You can also use the implicits from `import com.github.saurfang.sas.sas.spark._`.
+You can also use the implicits from `import com.github.saurfang.sas.spark._`.
 
 ```scala
 import org.apache.spark.sql.SQLContext
