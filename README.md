@@ -1,12 +1,12 @@
-# Spark SQL SAS Library
+# SparkSQL SAS (sas7bdat) Input Library
 
-A library for parsing SAS data (.sas7bdat) with [Spark SQL](http://spark.apache.org/docs/latest/sql-programming-guide.html).
+A library for parsing SAS data (sas7bdat) with [Spark SQL](http://spark.apache.org/docs/latest/sql-programming-guide.html).
 This also includes a `SasInputFormat` designed for Hadoop mapreduce. This format is splittable when input is uncompressed 
 thus can achieve high parallelism for a large SAS file.
 
 This library is inspired by [spark-csv](https://github.com/databricks/spark-csv) and 
 currently uses [parso](http://scitouch.net/opensource/parso) for parsing as it is the only public available parser
-that handles both forms of SAS compression (CHAR and Binary). Note *parso* is licensed under GPL-3 and subsequently
+that handles both forms of SAS compression (CHAR and BINARY). Note *parso* is licensed under GPL-3 and subsequently
 this library is also licensed as such.
 
 [![Build Status](https://travis-ci.org/saurfang/spark-sas7bdat.svg?branch=master)](https://travis-ci.org/saurfang/spark-sas7bdat)
