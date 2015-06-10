@@ -1,14 +1,14 @@
-package com.github.saurfang.sas.mapreduce
+package com.github.saurfang.sas.mapred
 
 import java.io.IOException
 
 import com.ggasoftware.parso.{SasFileConstants, SasFileParser, SasFileProperties}
 import org.apache.commons.io.input.CountingInputStream
+import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.FSDataInputStream
 import org.apache.hadoop.io.NullWritable
 import org.apache.hadoop.io.compress.CompressionCodecFactory
-import org.apache.hadoop.mapreduce.lib.input.FileSplit
-import org.apache.hadoop.mapreduce.{InputSplit, RecordReader, TaskAttemptContext}
+import org.apache.hadoop.mapred.{FileSplit, TaskAttemptContext, InputSplit, RecordReader}
 import org.apache.spark.Logging
 import org.apache.spark.deploy.SparkHadoopUtil
 import com.github.saurfang.sas.util.PrivateMethodExposer
@@ -32,32 +32,34 @@ class SasRecordReader() extends RecordReader[NullWritable, Array[Object]] with L
   private var recordValue: Array[Object] = null
 
   override def close() {
-    logInfo(s"Read $currentPosition bytes and $recordCount records ($lastPageBlockCounter/$lastPageBlockCount on last page).")
+    logInfo(s"Read $getPos bytes and $recordCount records ($lastPageBlockCounter/$lastPageBlockCount on last page).")
     if (countingInputStream != null) {
       countingInputStream.close()
     }
   }
 
-  override def getCurrentKey: NullWritable = {
+  override def createKey: NullWritable = {
     NullWritable.get
   }
 
-  override def getCurrentValue: Array[Object] = {
-    recordValue
+  override def createValue: Array[Object] = {
+    new Array[Object](sasFileProperties.getColumnsCount.toInt)
   }
 
   override def getProgress: Float = {
     splitStart match {
       case x if x == splitEnd => 0.0.toFloat
       case _ => Math.min(
-        (currentPosition / (splitEnd - splitStart)).toFloat, 1.0
+        (getPos / (splitEnd - splitStart)).toFloat, 1.0
       ).toFloat
     }
   }
 
-  override def initialize(inputSplit: InputSplit, context: TaskAttemptContext) {
+  def this(job: Configuration, split: InputSplit) {
+    this()
+
     // the file input
-    val fileSplit = inputSplit.asInstanceOf[FileSplit]
+    val fileSplit = split.asInstanceOf[FileSplit]
 
     // the byte position this fileSplit starts at
     splitStart = fileSplit.getStart
@@ -67,8 +69,6 @@ class SasRecordReader() extends RecordReader[NullWritable, Array[Object]] with L
 
     // the actual file we will be reading from
     val file = fileSplit.getPath
-    // job configuration
-    val job = SparkHadoopUtil.get.getConfigurationFromJobContext(context)
     // check compression
     val codec = new CompressionCodecFactory(job).getCodec(file)
     if (codec != null) {
@@ -113,19 +113,24 @@ class SasRecordReader() extends RecordReader[NullWritable, Array[Object]] with L
 
   private def getPartialPageLength(pos: Long) = (pos - sasFileProperties.getHeaderLength) % sasFileProperties.getPageLength
 
-  override def nextKeyValue(): Boolean = {
+  override def next(key: NullWritable, value: Array[Object]): Boolean = {
     lazy val readNext = {
-      recordValue = sasFileReaderPrivateExposer('readNext)().asInstanceOf[Array[Object]]
-      recordCount += (if (recordValue != null) 1 else 0)
-      recordValue != null
+      val recordValue = sasFileReaderPrivateExposer('readNext)().asInstanceOf[Array[Object]]
+      if (recordValue == null) {
+        false
+      } else {
+        recordValue.copyToArray(value)
+        recordCount += 1
+        true
+      }
     }
 
     // read a record if the currentPosition is less than the split end
-    if (currentPosition < splitEnd - splitStart) {
+    if (getPos < splitEnd - splitStart) {
       readNext
     } else if (
-      // be especially careful about last page
-      splitStart + currentPosition >= maxPagePosition &&
+    // be especially careful about last page
+      splitStart + getPos >= maxPagePosition &&
         // but don't get stuck on end of the file
         !(sasFileReaderPrivateExposer.get[Int]('currentPageType) == SasFileConstants.PAGE_META_TYPE &&
           sasFileReaderPrivateExposer.get[java.util.List[_]]('currentPageDataSubheaderPointers).size == 0)
@@ -141,5 +146,5 @@ class SasRecordReader() extends RecordReader[NullWritable, Array[Object]] with L
     }
   }
 
-  private def currentPosition: Long = countingInputStream.getByteCount
+  override def getPos: Long = countingInputStream.getByteCount
 }

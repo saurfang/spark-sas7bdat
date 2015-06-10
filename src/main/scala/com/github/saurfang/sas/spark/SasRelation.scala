@@ -4,13 +4,14 @@ import java.text.SimpleDateFormat
 import java.util.TimeZone
 
 import com.ggasoftware.parso.{Column, SasFileConstants, SasFileReader}
-import com.github.saurfang.sas.mapreduce.SasInputFormat
+import com.github.saurfang.sas.mapred.SasInputFormat
+import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{FileSystem, Path}
 import org.apache.hadoop.io.NullWritable
-import org.apache.hadoop.mapreduce.Job
-import org.apache.hadoop.mapreduce.lib.input.FileInputFormat
-import org.apache.spark.Logging
-import org.apache.spark.rdd.NewHadoopRDD
+import org.apache.hadoop.mapred.{FileInputFormat, JobConf}
+import org.apache.spark.{SerializableWritable, Logging}
+import org.apache.spark.broadcast.Broadcast
+import org.apache.spark.rdd.{HadoopRDD, NewHadoopRDD}
 import org.apache.spark.sql.SQLContext
 import org.apache.spark.sql.catalyst.expressions._
 import org.apache.spark.sql.sources.{BaseRelation, TableScan}
@@ -25,20 +26,22 @@ import scala.util.control.NonFatal
 case class SasRelation protected[spark](
                                          location: String,
                                          userSchema: StructType = null,
-                                         @transient job: Job = Job.getInstance()
+                                         @transient conf: JobConf = new JobConf(),
+                                         minPartitions: Int = 0
                                          )(@transient val sqlContext: SQLContext)
   extends BaseRelation with TableScan with Logging {
   val schema = inferSchema()
 
   // By making this a lazy val we keep the RDD around, amortizing the cost of locating splits.
   def buildScan() = {
-    FileInputFormat.setInputPaths(job, new Path(location))
-    val baseRDD = new NewHadoopRDD[NullWritable, Array[Object]](
+    FileInputFormat.setInputPaths(conf, new Path(location))
+    val baseRDD = new HadoopRDD[NullWritable, Array[Object]](
       sqlContext.sparkContext,
+      conf,
       classOf[SasInputFormat],
       classOf[NullWritable],
       classOf[Array[Object]],
-      job.getConfiguration
+      minPartitions
     ).map(_._2)
 
     val numFields = schema.fields.length
@@ -100,7 +103,7 @@ case class SasRelation protected[spark](
     if (this.userSchema != null) {
       userSchema
     } else {
-      val fs = FileSystem.get(job.getConfiguration)
+      val fs = FileSystem.get(conf)
       val inputStream = fs.open(new Path(location))
       val sasFileReader = new SasFileReader(inputStream)
       val schemaFields = sasFileReader.getColumns.toArray(Array.empty[Column]).map { column =>

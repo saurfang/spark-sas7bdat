@@ -1,8 +1,7 @@
 package com.github.saurfang.sas
 
 import com.ggasoftware.parso.SasFileConstants
-import org.apache.hadoop.mapreduce.Job
-import org.apache.hadoop.mapreduce.lib.input.FileInputFormat
+import org.apache.hadoop.mapred.JobConf
 import org.apache.spark.sql.{SaveMode, SQLContext}
 import org.apache.spark.{Logging, SparkConf, SparkContext}
 import org.scalactic.TolerantNumerics
@@ -15,13 +14,12 @@ class SasRelationSpec extends FlatSpec with Matchers with Logging {
     val sc = new SparkContext(new SparkConf().setMaster("local[2]").setAppName("SASRelation"))
     val sqlContext = new SQLContext(sc)
 
-    val job = Job.getInstance
-    val jobConf = job.getConfiguration
+    val jobConf = new JobConf()
     jobConf.setInt("fs.local.block.size", BLOCK_SIZE)
-    FileInputFormat.setMinInputSplitSize(job, BLOCK_SIZE)
+    jobConf.setInt("mapred.min.split.size", BLOCK_SIZE)
 
     import com.github.saurfang.sas.spark._
-    val randomDF = sqlContext.sasFile(getClass.getResource("/random.sas7bdat").getPath, job).cache()
+    val randomDF = sqlContext.sasFile(getClass.getResource("/random.sas7bdat").getPath, jobConf).cache()
     randomDF.printSchema()
 
     randomDF.count() should ===(1000000)
