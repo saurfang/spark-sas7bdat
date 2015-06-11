@@ -1,5 +1,6 @@
 package com.github.saurfang.sas.spark
 
+import java.net.URI
 import java.text.SimpleDateFormat
 import java.util.TimeZone
 
@@ -103,8 +104,9 @@ case class SasRelation protected[spark](
     if (this.userSchema != null) {
       userSchema
     } else {
-      val fs = FileSystem.get(conf)
-      val inputStream = fs.open(new Path(location))
+      val path = new Path(location)
+      val fs = path.getFileSystem(conf)
+      val inputStream = fs.open(path)
       val sasFileReader = new SasFileReader(inputStream)
       val schemaFields = sasFileReader.getColumns.toArray(Array.empty[Column]).map { column =>
         val columnType =
