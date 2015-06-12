@@ -1,12 +1,15 @@
 name := "spark-sas7bdat"
 
-version := "1.1.1"
+version := "1.1.2"
 
 organization := "com.github.saurfang"
 
 scalaVersion := "2.10.5"
 
 //crossScalaVersions := Seq("2.10.5", "2.11.6")
+
+scalacOptions ++= Seq("-target:jvm-1.7" )
+javacOptions ++= Seq("-source", "1.7", "-target", "1.7")
 
 libraryDependencies ++= Seq(
   "com.databricks" %% "spark-csv" % "1.0.3",
