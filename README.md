@@ -30,8 +30,28 @@ Schema is automatically inferred from meta information embedded in the SAS file.
 Thanks to the splittable `SasInputFormat`, we are able to convert a 200GB (1.5Bn rows) .sas7bdat file 
 to .csv files using 2000 executors in under 2 minutes.
 
+### SQL API
+SAS data can be queried in pure SQL by registering the data as a (temporary) table.
+
+```sql
+CREATE TEMPORARY TABLE cars
+USING com.github.saurfang.sas.spark
+OPTIONS (path "cars.sas7bdat")
+```
+
 ### Scala API
 The recommended way to load SAS data is using the load functions in SQLContext.
+
+Spark 1.4+:
+```scala
+import org.apache.spark.sql.SQLContext
+
+val sqlContext = new SQLContext(sc)
+val df = sqlContext.read.format("com.github.saurfang.sas.spark").load("cars.sas7bdat")
+df.select("year", "model").write.format("com.databricks.spark.csv").save("newcars.csv")
+```
+
+Spark 1.3:
 
 ```scala
 import org.apache.spark.sql.SQLContext
@@ -69,7 +89,7 @@ cluster, you can always run it in local mode and take advantage of multi-core.
 For further flexibility, you can use `spark-shell`:
 
 ```bash
-spark-shell --master local[4] --packages saurfang:spark-sas7bdat:1.1.2-s_2.10
+spark-shell --master local[4] --packages saurfang:spark-sas7bdat:1.1.3-s_2.10
 ```
  
 In the shell you can do data analysis like:

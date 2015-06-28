@@ -1,18 +1,18 @@
 name := "spark-sas7bdat"
 
-version := "1.1.2"
+version := "1.1.3"
 
 organization := "com.github.saurfang"
 
 scalaVersion := "2.10.5"
 
-//crossScalaVersions := Seq("2.10.5", "2.11.6")
+crossScalaVersions := Seq("2.10.5", "2.11.6")
 
 scalacOptions ++= Seq("-target:jvm-1.7" )
 javacOptions ++= Seq("-source", "1.7", "-target", "1.7")
 
 libraryDependencies ++= Seq(
-  "com.databricks" %% "spark-csv" % "1.0.3",
+  "com.databricks" %% "spark-csv" % "1.1.0",
   "com.ggasoftware" % "parso" % "1.2.1",
   "org.scalatest" %% "scalatest" % "2.2.4" % "test"
 )
@@ -20,7 +20,7 @@ libraryDependencies ++= Seq(
 //sbt-spark-package
 spName := "saurfang/spark-sas7bdat"
 
-sparkVersion := "1.3.0"
+sparkVersion := "1.4.0"
 
 sparkComponents += "sql"
 

@@ -2,16 +2,15 @@ package com.github.saurfang.sas
 
 import com.ggasoftware.parso.SasFileConstants
 import org.apache.hadoop.mapred.JobConf
-import org.apache.spark.sql.{SaveMode, SQLContext}
-import org.apache.spark.{Logging, SparkConf, SparkContext}
+import org.apache.spark.sql.{SQLContext, SaveMode}
+import org.apache.spark.{Logging, SharedSparkContext}
 import org.scalactic.TolerantNumerics
 import org.scalatest._
 
-class SasRelationSpec extends FlatSpec with Matchers with Logging {
+class SasRelationSpec extends FlatSpec with Matchers with Logging with SharedSparkContext{
   val BLOCK_SIZE = 3 * 1024 * 1024
 
   "SASReltion" should "read SAS data exactly correct" in {
-    val sc = new SparkContext(new SparkConf().setMaster("local[2]").setAppName("SASRelation"))
     val sqlContext = new SQLContext(sc)
 
     val jobConf = new JobConf()
@@ -36,11 +35,9 @@ class SasRelationSpec extends FlatSpec with Matchers with Logging {
         row1.getDouble(1).toLong should ===(row2.getString(1).toLong)
     }
 
-    sc.stop()
   }
 
   "SASRelation" should "support export datetime to csv/parquet" in {
-    val sc = new SparkContext(new SparkConf().setMaster("local[2]").setAppName("SASRelation"))
     val sqlContext = new SQLContext(sc)
 
     import com.github.saurfang.sas.spark._
@@ -49,7 +46,5 @@ class SasRelationSpec extends FlatSpec with Matchers with Logging {
 
     dtDF.save(getClass.getResource("/").getPath + "datetime.parquet", SaveMode.Overwrite)
     dtDF.save(getClass.getResource("/").getPath + "datetime.csv","com.databricks.spark.csv", SaveMode.Overwrite)
-
-    sc.stop()
   }
 }

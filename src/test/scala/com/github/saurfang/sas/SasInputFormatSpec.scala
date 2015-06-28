@@ -4,16 +4,14 @@ import com.github.saurfang.sas.mapred.SasInputFormat
 import org.apache.hadoop.fs.{FileSystem, Path}
 import org.apache.hadoop.io.NullWritable
 import org.apache.hadoop.mapred.{FileInputFormat, JobConf}
-import org.apache.spark.rdd.{HadoopRDD, NewHadoopRDD}
-import org.apache.spark.{Logging, SparkConf, SparkContext}
+import org.apache.spark.rdd.HadoopRDD
+import org.apache.spark.{Logging, SharedSparkContext}
 import org.scalatest._
-import com.github.saurfang.sas.mapred.SasInputFormat
 
-class SasInputFormatSpec extends FlatSpec with Matchers with Logging {
+class SasInputFormatSpec extends FlatSpec with Matchers with Logging with SharedSparkContext {
   val BLOCK_SIZE = 3 * 1024 * 1024
 
   "SASInputFormat" should "read correct number of observations" in {
-    val sc = new SparkContext(new SparkConf().setMaster("local[2]").setAppName("SASInputFormat"))
     val jobConf = new JobConf()
     jobConf.setInt("fs.local.block.size", BLOCK_SIZE)
     jobConf.setInt("mapred.min.split.size", BLOCK_SIZE)
@@ -33,7 +31,5 @@ class SasInputFormatSpec extends FlatSpec with Matchers with Logging {
     )
 
     sasRDD.count() should ===(1000000)
-
-    sc.stop()
   }
 }
