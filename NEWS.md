@@ -1,6 +1,6 @@
 ## 1.1.3
 
-- __Fixed__: Add proper support for load via sqlContext
+- __Added__: Add proper support for load via sqlContext
 
 ## 1.1.2
 
