@@ -96,10 +96,6 @@ case class SasRelation protected[spark](
     }
   }
 
-  private def asAttributes(struct: StructType): Seq[AttributeReference] = {
-    struct.fields.map(field => AttributeReference(field.name, field.dataType, nullable = true)())
-  }
-
   private def inferSchema(): StructType = {
     if (this.userSchema != null) {
       userSchema
