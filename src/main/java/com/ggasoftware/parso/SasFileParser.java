@@ -913,6 +913,15 @@ public class SasFileParser {
      * @throws IOException if reading from the {@link SasFileParser#sasFileStream} stream is impossible.
      */
     void readNextPage() throws IOException {
+        processNextPage();
+        while(currentPageType != PAGE_META_TYPE && currentPageType != PAGE_MIX_TYPE &&
+                currentPageType != PAGE_DATA_TYPE) {
+            processNextPage();
+        }
+    }
+
+    // helper function to avoid stack overflow as Java doesn't do tail call optimization(?)
+    private void processNextPage() throws IOException {
         int bitOffset = sasFileProperties.isU64() ? PAGE_BIT_OFFSET_X64 : PAGE_BIT_OFFSET_X86;
         currentPageDataSubheaderPointers.clear();
 
@@ -926,10 +935,6 @@ public class SasFileParser {
         if (currentPageType == PAGE_META_TYPE) {
             List<SubheaderPointer> subheaderPointers = new ArrayList<SubheaderPointer>();
             processPageMetadata(bitOffset, subheaderPointers);
-        }
-        if (currentPageType != PAGE_META_TYPE && currentPageType != PAGE_MIX_TYPE &&
-                currentPageType != PAGE_DATA_TYPE) {
-            readNextPage();
         }
     }
 
