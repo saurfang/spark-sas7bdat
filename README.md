@@ -13,7 +13,7 @@ this library is also licensed as such.
 
 ## Requirements
 
-This library requires Spark 1.3+
+This library requires Spark 1.4+
 
 ## How To Use
 
@@ -42,23 +42,12 @@ OPTIONS (path "cars.sas7bdat")
 ### Scala API
 The recommended way to load SAS data is using the load functions in SQLContext.
 
-Spark 1.4+:
 ```scala
 import org.apache.spark.sql.SQLContext
 
 val sqlContext = new SQLContext(sc)
 val df = sqlContext.read.format("com.github.saurfang.sas.spark").load("cars.sas7bdat")
 df.select("year", "model").write.format("com.databricks.spark.csv").save("newcars.csv")
-```
-
-Spark 1.3:
-
-```scala
-import org.apache.spark.sql.SQLContext
-
-val sqlContext = new SQLContext(sc)
-val df = sqlContext.load("com.github.saurfang.sas.spark", Map("path" -> "cars.sas7bdat"))
-df.select("year", "model").save("newcars.csv", "com.databricks.spark.csv")
 ```
 
 You can also use the implicits from `import com.github.saurfang.sas.spark._`.
