@@ -1088,26 +1088,32 @@ public class SasFileParser {
                 columnsDataLength.get(currentColumnIndex) != 0; currentColumnIndex++) {
             int length = columnsDataLength.get(currentColumnIndex);
             if (columns.get(currentColumnIndex).getType() == Number.class) {
-                temp = Arrays.copyOfRange(source, offset + (int) (long) columnsDataOffset.get(currentColumnIndex),
-                        offset + (int) (long) columnsDataOffset.get(currentColumnIndex) + length);
-                if (columnsDataLength.get(currentColumnIndex) <= 2) {
-                    rowElements[currentColumnIndex] = bytesToShort(temp);
-                } else {
-                    if (columns.get(currentColumnIndex).getFormat().isEmpty()) {
-                        rowElements[currentColumnIndex] = convertByteArrayToNumber(temp);
+                try {
+                    temp = Arrays.copyOfRange(source, offset + (int) (long) columnsDataOffset.get(currentColumnIndex),
+                            offset + (int) (long) columnsDataOffset.get(currentColumnIndex) + length);
+                    if (columnsDataLength.get(currentColumnIndex) <= 2) {
+                        rowElements[currentColumnIndex] = bytesToShort(temp);
                     } else {
-                        if (DATE_TIME_FORMAT_STRINGS.contains(
-                                columns.get(currentColumnIndex).getFormat())) {
-                            rowElements[currentColumnIndex] = bytesToDateTime(temp);
+                        if (columns.get(currentColumnIndex).getFormat().isEmpty()) {
+                            rowElements[currentColumnIndex] = convertByteArrayToNumber(temp);
                         } else {
-                            if (DATE_FORMAT_STRINGS.contains(
+                            if (DATE_TIME_FORMAT_STRINGS.contains(
                                     columns.get(currentColumnIndex).getFormat())) {
-                                rowElements[currentColumnIndex] = bytesToDate(temp);
+                                rowElements[currentColumnIndex] = bytesToDateTime(temp);
                             } else {
-                                rowElements[currentColumnIndex] = convertByteArrayToNumber(temp);
+                                if (DATE_FORMAT_STRINGS.contains(
+                                        columns.get(currentColumnIndex).getFormat())) {
+                                    rowElements[currentColumnIndex] = bytesToDate(temp);
+                                } else {
+                                    rowElements[currentColumnIndex] = convertByteArrayToNumber(temp);
+                                }
                             }
                         }
                     }
+                } catch (ArrayIndexOutOfBoundsException e){
+                    //TODO This might not be the correct but is attempted for https://github.com/saurfang/spark-sas7bdat/issues/5
+                    logger.warn("Unable to process byteArray for " + rowLength + ", " + rowOffset + "at " + currentColumnIndex);
+                    rowElements[currentColumnIndex] = null;
                 }
             } else {
                 byte[] bytes = trimBytesArray(source,
