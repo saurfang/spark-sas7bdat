@@ -3,15 +3,14 @@ package com.github.saurfang.sas.mapred
 import java.io.IOException
 
 import com.ggasoftware.parso.{SasFileConstants, SasFileParser, SasFileProperties}
+import com.github.saurfang.sas.util.PrivateMethodExposer
 import org.apache.commons.io.input.CountingInputStream
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.FSDataInputStream
 import org.apache.hadoop.io.NullWritable
 import org.apache.hadoop.io.compress.CompressionCodecFactory
-import org.apache.hadoop.mapred.{FileSplit, TaskAttemptContext, InputSplit, RecordReader}
+import org.apache.hadoop.mapred.{FileSplit, InputSplit, RecordReader}
 import org.apache.spark.Logging
-import org.apache.spark.deploy.SparkHadoopUtil
-import com.github.saurfang.sas.util.PrivateMethodExposer
 
 /**
  * An [[RecordReader]] for [[SasInputFormat]]. Each split is aligned to page sized specified in the .sas7bdat meta info.

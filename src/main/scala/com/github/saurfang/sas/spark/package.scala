@@ -1,8 +1,6 @@
 package com.github.saurfang.sas
 
-import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.mapred.JobConf
-import org.apache.hadoop.mapreduce.Job
 import org.apache.spark.sql.SQLContext
 
 package object spark {

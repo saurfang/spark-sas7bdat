@@ -1,18 +1,15 @@
 package com.github.saurfang.sas.spark
 
-import java.net.URI
 import java.text.SimpleDateFormat
 import java.util.TimeZone
 
-import com.ggasoftware.parso.{Column, SasFileConstants, SasFileReader}
+import com.ggasoftware.parso.{SasFileConstants, SasFileReader}
 import com.github.saurfang.sas.mapred.SasInputFormat
-import org.apache.hadoop.conf.Configuration
-import org.apache.hadoop.fs.{FileSystem, Path}
+import org.apache.hadoop.fs.Path
 import org.apache.hadoop.io.NullWritable
 import org.apache.hadoop.mapred.{FileInputFormat, JobConf}
-import org.apache.spark.{SerializableWritable, Logging}
-import org.apache.spark.broadcast.Broadcast
-import org.apache.spark.rdd.{HadoopRDD, NewHadoopRDD}
+import org.apache.spark.Logging
+import org.apache.spark.rdd.HadoopRDD
 import org.apache.spark.sql.SQLContext
 import org.apache.spark.sql.catalyst.expressions._
 import org.apache.spark.sql.sources.{BaseRelation, TableScan}
@@ -104,7 +101,8 @@ case class SasRelation protected[spark](
       val fs = path.getFileSystem(conf)
       val inputStream = fs.open(path)
       val sasFileReader = new SasFileReader(inputStream)
-      val schemaFields = sasFileReader.getColumns.toArray(Array.empty[Column]).map { column =>
+      import scala.collection.JavaConversions._
+      val schemaFields = sasFileReader.getColumns.map { column =>
         val columnType =
           if (column.getType == classOf[Number]) {
             if (SasFileConstants.DATE_TIME_FORMAT_STRINGS.contains(column.getFormat))
