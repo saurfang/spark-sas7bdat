@@ -1,6 +1,12 @@
+## 1.1.4
+
+- __Fixed__: Remove dependency on GenericMutableRow so package works for 1.4 and above.
+- __Added__: Add date datatype support and Date will now return as `java.sql.Date`.
+- __Changed__: Package now compiles against 1.5.0.
+
 ## 1.1.3
 
-- __Added__: Add proper support for load via sqlContext
+- __Added__: Add proper support for load via sqlContext.
 
 ## 1.1.2
 

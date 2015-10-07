@@ -23,7 +23,7 @@ linking information can be found at http://spark-packages.org/package/saurfang/s
 ## Features
 
 This package allows reading SAS files in local or distributed filesystem as 
-[Spark DataFrames](https://spark.apache.org/docs/1.3.0/sql-programming-guide.html).
+[Spark DataFrames](https://spark.apache.org/docs/latest/sql-programming-guide.html).
 
 Schema is automatically inferred from meta information embedded in the SAS file.
 
@@ -78,7 +78,7 @@ cluster, you can always run it in local mode and take advantage of multi-core.
 For further flexibility, you can use `spark-shell`:
 
 ```bash
-spark-shell --master local[4] --packages saurfang:spark-sas7bdat:1.1.3-s_2.10
+spark-shell --master local[4] --packages saurfang:spark-sas7bdat:1.1.4-s_2.10
 ```
  
 In the shell you can do data analysis like:
@@ -97,9 +97,7 @@ random.filter("x > 0.4").count
 
 1. `spark-csv` writes out `null` as "null" in csv text output. This means if you read it back for a string type,
 you might actually read "null" instead of `null`. The safest option is to export in parquet format where
-null is properly recorded.
-2. The version of parquet used in SparkSQL 1.3.0 don't support date type. Hence date are coerced into
-string with yyyy-MM-dd format.
+null is properly recorded. See https://github.com/databricks/spark-csv/pull/147 for alternative solution.
 
 ## Related Work
 
