@@ -64,14 +64,10 @@ case class SasRelation protected[spark](
               //SAS itself only has double as its numeric type.
               //Hence we can't infer Long/Integer type ahead of time therefore we convert it back to Double
               case x: java.lang.Long => x.toDouble
-              //TODO: Return proper Date object once SparkSQL/parquet adds support for DateType
               case x: java.util.Date =>
                 schemaFields(index).dataType match {
                   case TimestampType => new java.sql.Timestamp(x.getTime)
-                  case _ =>
-                    val dateFormat = new SimpleDateFormat("yyyy-MM-dd")
-                    dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"))
-                    dateFormat.format(x)
+                  case DateType => new java.sql.Date(x.getTime)
                 }
               case x => x
             }
@@ -106,7 +102,7 @@ case class SasRelation protected[spark](
             if (SasFileConstants.DATE_TIME_FORMAT_STRINGS.contains(column.getFormat))
               TimestampType
             else if (SasFileConstants.DATE_FORMAT_STRINGS.contains(column.getFormat))
-              StringType //TODO: Change to DateType when parquet supports it
+              DateType
             else
               DoubleType
           } else {
