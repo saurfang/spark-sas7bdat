@@ -11,8 +11,8 @@ import org.apache.hadoop.mapred.{FileInputFormat, JobConf}
 import org.apache.spark.Logging
 import org.apache.spark.rdd.HadoopRDD
 import org.apache.spark.sql.SQLContext
-import org.apache.spark.sql.catalyst.expressions._
 import org.apache.spark.sql.sources.{BaseRelation, TableScan}
+import org.apache.spark.sql.Row
 import org.apache.spark.sql.types._
 
 import scala.util.control.NonFatal
@@ -42,18 +42,16 @@ case class SasRelation protected[spark](
       minPartitions
     ).map(_._2)
 
-    val numFields = schema.fields.length
-    val row = new GenericMutableRow(numFields)
-
-    baseRDD.mapPartitions { iter => parseSAS(iter, schema.fields, row) }
+    baseRDD.mapPartitions { iter => parseSAS(iter, schema.fields) }
   }
 
   private def parseSAS(
                         iter: Iterator[Array[Object]],
-                        schemaFields: Seq[StructField],
-                        row: GenericMutableRow): Iterator[Row] = {
+                        schemaFields: Seq[StructField]): Iterator[Row] = {
     iter.flatMap { records =>
       var index: Int = 0
+      val rowArray = new Array[Any](schemaFields.length)
+
       try {
         if (records.isEmpty) {
           logWarning(s"Ignoring empty line: $records")
@@ -62,7 +60,7 @@ case class SasRelation protected[spark](
           index = 0
 
           while (index < schemaFields.length) {
-            row(index) = records(index) match {
+            rowArray(index) = records(index) match {
               //SAS itself only has double as its numeric type.
               //Hence we can't infer Long/Integer type ahead of time therefore we convert it back to Double
               case x: java.lang.Long => x.toDouble
@@ -80,12 +78,12 @@ case class SasRelation protected[spark](
             index = index + 1
           }
 
-          Some(row)
+          Some(Row.fromSeq(rowArray))
         }
       } catch {
         case aiob: ArrayIndexOutOfBoundsException =>
-          (index until schemaFields.length).foreach(ind => row(ind) = null)
-          Some(row)
+          (index until schemaFields.length).foreach(ind => rowArray(ind) = null)
+          Some(Row.fromSeq(rowArray))
         case NonFatal(e) =>
           logError(s"Exception while parsing line: ${records.toList}.", e)
           None
