@@ -2,7 +2,7 @@ name := "spark-sas7bdat"
 version := "1.1.5"
 organization := "com.github.saurfang"
 
-scalaVersion := "2.10.5"
+scalaVersion := "2.11.6"
 crossScalaVersions := Seq("2.10.5", "2.11.6")
 
 scalacOptions ++= Seq("-target:jvm-1.7" )
@@ -17,7 +17,7 @@ libraryDependencies ++= Seq(
 
 //sbt-spark-package
 spName := "saurfang/spark-sas7bdat"
-sparkVersion := "1.6.3"
+sparkVersion := "2.0.1"
 sparkComponents += "sql"
 spAppendScalaVersion := true
 credentials += Credentials(Path.userHome / ".ivy2" / ".sbtcredentials")
