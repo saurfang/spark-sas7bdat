@@ -10,13 +10,13 @@ import org.apache.hadoop.fs.FSDataInputStream
 import org.apache.hadoop.io.NullWritable
 import org.apache.hadoop.io.compress.CompressionCodecFactory
 import org.apache.hadoop.mapred.{FileSplit, InputSplit, RecordReader}
-import org.apache.spark.Logging
+import org.apache.log4j.LogManager
 
 /**
  * An [[RecordReader]] for [[SasInputFormat]]. Each split is aligned to page sized specified in the .sas7bdat meta info.
  * Each split looks back previous split if the start of split is incomplete.
  */
-class SasRecordReader() extends RecordReader[NullWritable, Array[Object]] with Logging {
+class SasRecordReader() extends RecordReader[NullWritable, Array[Object]] {
   private lazy val sasFileProperties: SasFileProperties = sasFileReaderPrivateExposer('getSasFileProperties)().asInstanceOf[SasFileProperties]
   private lazy val maxPagePosition: Long = sasFileProperties.getHeaderLength + sasFileProperties.getPageCount * sasFileProperties.getPageLength
   private lazy val lastPageBlockCount: Int = sasFileReaderPrivateExposer.get[Int]('currentPageBlockCount)
@@ -29,9 +29,11 @@ class SasRecordReader() extends RecordReader[NullWritable, Array[Object]] with L
   private var recordCount: Int = 0
   private var lastPageBlockCounter: Int = 0
   private var recordValue: Array[Object] = null
+  
+  val log = LogManager.getRootLogger
 
   override def close() {
-    logInfo(s"Read $getPos bytes and $recordCount records ($lastPageBlockCounter/$lastPageBlockCount on last page).")
+    log.info(s"Read $getPos bytes and $recordCount records ($lastPageBlockCounter/$lastPageBlockCount on last page).")
     if (countingInputStream != null) {
       countingInputStream.close()
     }
@@ -82,14 +84,14 @@ class SasRecordReader() extends RecordReader[NullWritable, Array[Object]] with L
     sasFileReader = new SasFileParser.Builder().sasFileStream(countingInputStream).build() // new SasFileReader(countingInputStream)
     sasFileReaderPrivateExposer = PrivateMethodExposer(sasFileReader)
 
-    logInfo(sasFileProperties.toString)
+    log.info(sasFileProperties.toString)
 
     // align splitEnd to pages
     // only shrink splitEnd if this is the first split or the split starts after meta data
     val partialPageLength = getPartialPageLength(splitEnd)
     if (partialPageLength != 0) {
       splitEnd -= partialPageLength
-      logInfo(s"Shrunk $partialPageLength bytes.")
+      log.info(s"Shrunk $partialPageLength bytes.")
     }
 
     // align splitStart to pages and seek (only if this block is after meta/mix page)
@@ -97,11 +99,11 @@ class SasRecordReader() extends RecordReader[NullWritable, Array[Object]] with L
       val extraPageLength = sasFileProperties.getPageLength - getPartialPageLength(splitStart)
       splitStart -= extraPageLength
       if (extraPageLength != 0) {
-        logInfo(s"Looked back $extraPageLength bytes.")
+        log.info(s"Looked back $extraPageLength bytes.")
       }
 
       fileInputStream.seek(splitStart)
-      logInfo(s"Skipped $splitStart bytes.")
+      log.info(s"Skipped $splitStart bytes.")
       //reset progress
       countingInputStream.resetByteCount()
       //if we seek then we need to look at the current page
