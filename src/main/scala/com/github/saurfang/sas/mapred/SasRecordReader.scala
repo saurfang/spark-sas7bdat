@@ -29,8 +29,8 @@ class SasRecordReader() extends RecordReader[NullWritable, Array[Object]] {
   private var recordCount: Int = 0
   private var lastPageBlockCounter: Int = 0
   private var recordValue: Array[Object] = null
-  
-  val log = LogManager.getRootLogger
+
+  @transient lazy val log = LogManager.getLogger(this.getClass.getName)
 
   override def close() {
     log.info(s"Read $getPos bytes and $recordCount records ($lastPageBlockCounter/$lastPageBlockCount on last page).")

@@ -12,8 +12,8 @@ import org.apache.log4j.LogManager
 object SasExport {
 
   def main(args: Array[String]): Unit = {
-    val log = LogManager.getRootLogger
-    log.info(args.mkString(" "))   
+    val log = LogManager.getLogger(this.getClass.getName)
+    log.info(args.mkString(" "))
 
     val spark = SparkSession
       .builder

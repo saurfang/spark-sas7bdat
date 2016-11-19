@@ -11,7 +11,7 @@ import org.apache.log4j.LogManager
 
 class SasInputFormatSpec extends FlatSpec with Matchers with SharedSparkContext {
   val BLOCK_SIZE = 3 * 1024 * 1024
-  @transient lazy val log = LogManager.getRootLogger
+  @transient lazy val log = LogManager.getLogger(this.getClass.getName)
 
   "SASInputFormat" should "read correct number of observations" in {
     val jobConf = new JobConf()
