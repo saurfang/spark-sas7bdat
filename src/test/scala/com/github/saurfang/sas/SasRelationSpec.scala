@@ -13,14 +13,19 @@ class SasRelationSpec extends FlatSpec with Matchers with SharedSparkContext{
   val BLOCK_SIZE = 3 * 1024 * 1024
 
   "SASReltion" should "read SAS data exactly correct" in {
-    val spark = SparkSession.builder().getOrCreate()
+    val sqlContext = new SQLContext(sc)
 
-    val randomDF = spark.read.format("com.github.saurfang.sas.spark").load(getClass.getResource("/random.sas7bdat").getPath).cache()
+    val jobConf = new JobConf()
+    jobConf.setInt("fs.local.block.size", BLOCK_SIZE)
+    jobConf.setInt("mapred.min.split.size", BLOCK_SIZE)
+
+    import com.github.saurfang.sas.spark._
+    val randomDF = sqlContext.sasFile(getClass.getResource("/random.sas7bdat").getPath, jobConf).cache()
     randomDF.printSchema()
 
     randomDF.count() should ===(1000000)
 
-    val referenceDF = spark.read.format("csv").option("header", "true").load(getClass.getResource("/random.csv").getPath).cache()
+    val referenceDF = sqlContext.read.format("csv").option("header", "true").load(getClass.getResource("/random.csv").getPath).cache()
 
     import TolerantNumerics._
     implicit val dblEquality = tolerantDoubleEquality(SasFileConstants.EPSILON)
@@ -34,9 +39,10 @@ class SasRelationSpec extends FlatSpec with Matchers with SharedSparkContext{
   }
 
   "SASRelation" should "support export datetime to csv/parquet" in {
-    val spark = SparkSession.builder().getOrCreate()
+    val sqlContext = new SQLContext(sc)
 
-    val dtDF = spark.read.format("com.github.saurfang.sas.spark").load(getClass.getResource("/datetime.sas7bdat").getPath).cache()
+    import com.github.saurfang.sas.spark._
+    val dtDF = sqlContext.sasFile(getClass.getResource("/datetime.sas7bdat").getPath).cache()
     dtDF.printSchema()
 
     dtDF.write.mode("overwrite").format("parquet").save(getClass.getResource("/").getPath + "datetime.parquet")
