@@ -8,7 +8,7 @@ import com.github.saurfang.sas.mapred.SasInputFormat
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.io.NullWritable
 import org.apache.hadoop.mapred.{FileInputFormat, JobConf}
-import org.apache.spark.Logging
+import org.apache.log4j.LogManager
 import org.apache.spark.rdd.HadoopRDD
 import org.apache.spark.sql.SQLContext
 import org.apache.spark.sql.sources.{BaseRelation, TableScan}
@@ -27,7 +27,8 @@ case class SasRelation protected[spark](
                                          @transient conf: JobConf = new JobConf(),
                                          minPartitions: Int = 0
                                          )(@transient val sqlContext: SQLContext)
-  extends BaseRelation with TableScan with Logging {
+  extends BaseRelation with TableScan {
+  @transient lazy val log = LogManager.getLogger(this.getClass.getName)
   val schema = inferSchema()
 
   // By making this a lazy val we keep the RDD around, amortizing the cost of locating splits.
@@ -54,7 +55,7 @@ case class SasRelation protected[spark](
 
       try {
         if (records.isEmpty) {
-          logWarning(s"Ignoring empty line: $records")
+          log.warn(s"Ignoring empty line: $records")
           None
         } else {
           index = 0
@@ -81,7 +82,7 @@ case class SasRelation protected[spark](
           (index until schemaFields.length).foreach(ind => rowArray(ind) = null)
           Some(Row.fromSeq(rowArray))
         case NonFatal(e) =>
-          logError(s"Exception while parsing line: ${records.toList}.", e)
+          log.error(s"Exception while parsing line: ${records.toList}.", e)
           None
       }
     }
