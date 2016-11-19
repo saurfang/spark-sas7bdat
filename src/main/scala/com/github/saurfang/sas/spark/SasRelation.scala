@@ -28,7 +28,7 @@ case class SasRelation protected[spark](
                                          minPartitions: Int = 0
                                          )(@transient val sqlContext: SQLContext)
   extends BaseRelation with TableScan {
-  val log = LogManager.getRootLogger
+  @transient lazy val log = LogManager.getRootLogger
   val schema = inferSchema()
 
   // By making this a lazy val we keep the RDD around, amortizing the cost of locating splits.

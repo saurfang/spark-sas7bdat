@@ -9,7 +9,6 @@ scalacOptions ++= Seq("-target:jvm-1.7" )
 javacOptions ++= Seq("-source", "1.7", "-target", "1.7")
 
 libraryDependencies ++= Seq(
-  "com.databricks" %% "spark-csv" % "1.5.0",
   "com.ggasoftware" % "parso" % "1.2.1",
   "org.scalatest" %% "scalatest" % "2.2.4" % "test",
   "org.apache.logging.log4j" %% "log4j-api-scala" % "2.7"

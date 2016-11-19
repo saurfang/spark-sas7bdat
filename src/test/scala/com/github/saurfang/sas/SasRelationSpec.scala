@@ -3,28 +3,24 @@ package com.github.saurfang.sas
 import com.ggasoftware.parso.SasFileConstants
 import org.apache.hadoop.mapred.JobConf
 import org.apache.spark.sql.{SQLContext, SaveMode}
-import org.apache.spark.{Logging, SharedSparkContext}
+import org.apache.spark.{SharedSparkContext}
 import org.scalactic.TolerantNumerics
 import org.scalatest._
+import org.apache.log4j.LogManager
+import org.apache.spark.sql.SparkSession
 
-class SasRelationSpec extends FlatSpec with Matchers with Logging with SharedSparkContext{
+class SasRelationSpec extends FlatSpec with Matchers with SharedSparkContext{
   val BLOCK_SIZE = 3 * 1024 * 1024
 
   "SASReltion" should "read SAS data exactly correct" in {
-    val sqlContext = new SQLContext(sc)
+    val spark = SparkSession.builder().getOrCreate()
 
-    val jobConf = new JobConf()
-    jobConf.setInt("fs.local.block.size", BLOCK_SIZE)
-    jobConf.setInt("mapred.min.split.size", BLOCK_SIZE)
-
-    import com.github.saurfang.sas.spark._
-    val randomDF = sqlContext.sasFile(getClass.getResource("/random.sas7bdat").getPath, jobConf).cache()
+    val randomDF = spark.read.format("com.github.saurfang.sas.spark").load(getClass.getResource("/random.sas7bdat").getPath).cache()
     randomDF.printSchema()
 
     randomDF.count() should ===(1000000)
 
-    import com.databricks.spark.csv._
-    val referenceDF = sqlContext.csvFile(getClass.getResource("/random.csv").getPath).cache()
+    val referenceDF = spark.read.format("csv").option("header", "true").load(getClass.getResource("/random.csv").getPath).cache()
 
     import TolerantNumerics._
     implicit val dblEquality = tolerantDoubleEquality(SasFileConstants.EPSILON)
@@ -38,13 +34,12 @@ class SasRelationSpec extends FlatSpec with Matchers with Logging with SharedSpa
   }
 
   "SASRelation" should "support export datetime to csv/parquet" in {
-    val sqlContext = new SQLContext(sc)
+    val spark = SparkSession.builder().getOrCreate()
 
-    import com.github.saurfang.sas.spark._
-    val dtDF = sqlContext.sasFile(getClass.getResource("/datetime.sas7bdat").getPath).cache()
+    val dtDF = spark.read.format("com.github.saurfang.sas.spark").load(getClass.getResource("/datetime.sas7bdat").getPath).cache()
     dtDF.printSchema()
 
-    dtDF.save(getClass.getResource("/").getPath + "datetime.parquet", SaveMode.Overwrite)
-    dtDF.save(getClass.getResource("/").getPath + "datetime.csv","com.databricks.spark.csv", SaveMode.Overwrite)
+    dtDF.write.mode("overwrite").format("parquet").save(getClass.getResource("/").getPath + "datetime.parquet")
+    dtDF.write.mode("overwrite").format("csv").option("header", "true").save(getClass.getResource("/").getPath + "datetime.csv")
   }
 }

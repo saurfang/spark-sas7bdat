@@ -5,11 +5,13 @@ import org.apache.hadoop.fs.{FileSystem, Path}
 import org.apache.hadoop.io.NullWritable
 import org.apache.hadoop.mapred.{FileInputFormat, JobConf}
 import org.apache.spark.rdd.HadoopRDD
-import org.apache.spark.{Logging, SharedSparkContext}
+import org.apache.spark.{SharedSparkContext}
 import org.scalatest._
+import org.apache.log4j.LogManager
 
-class SasInputFormatSpec extends FlatSpec with Matchers with Logging with SharedSparkContext {
+class SasInputFormatSpec extends FlatSpec with Matchers with SharedSparkContext {
   val BLOCK_SIZE = 3 * 1024 * 1024
+  @transient lazy val log = LogManager.getRootLogger
 
   "SASInputFormat" should "read correct number of observations" in {
     val jobConf = new JobConf()
@@ -19,7 +21,7 @@ class SasInputFormatSpec extends FlatSpec with Matchers with Logging with Shared
     FileInputFormat.setInputPaths(jobConf, path)
 
     val fileStatus = FileSystem.get(jobConf).getFileStatus(path)
-    logInfo(s"Block Size: ${fileStatus.getBlockSize}")
+    log.info(s"Block Size: ${fileStatus.getBlockSize}")
 
     val sasRDD = new HadoopRDD[NullWritable, Array[Object]](
       sc,
