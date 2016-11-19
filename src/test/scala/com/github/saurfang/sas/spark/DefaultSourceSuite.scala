@@ -13,6 +13,7 @@ class DefaultSourceSuite extends FunSuite with Matchers with SharedSparkContext 
     import com.github.saurfang.sas.spark._
     val dtDF = sqlContext.sasFile(datetimeFile)
 
+    import sqlContext._
     sql(
       s"""
         |CREATE TEMPORARY TABLE dtTable
