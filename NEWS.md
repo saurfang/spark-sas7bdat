@@ -1,3 +1,7 @@
+## 1.1.5
+
+- __Changed__: Package now compiles against 2.0.1. (Thanks @chappers)
+
 ## 1.1.4
 
 - __Fixed__: Remove dependency on GenericMutableRow so package works for 1.4 and above.
