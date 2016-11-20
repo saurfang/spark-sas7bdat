@@ -76,6 +76,17 @@ sqlContext = SQLContext(sc)
 df = sqlContext.read.format("com.github.saurfang.sas.spark").load("cars.sas7bdat")
 ```
 
+### R API
+Similar to the Scala API, SAS data can be loaded using SQLContext.
+
+```r
+// spark < 1.6.0 (Experimental)
+df <- read.df(sqlContext, "cars.sas7bdat", "com.github.saurfang.sas.spark")
+
+// spark 2.0.0+
+df <- read.df("cars.sas7bdat", "com.github.saurfang.sas.spark")
+```
+
 ## SAS Export Runner
 We also included a simple `SasExport` Spark program that converts *.sas7bdat* to *.csv* or *.parquet* file:
 
