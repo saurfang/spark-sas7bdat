@@ -1,5 +1,5 @@
 name := "spark-sas7bdat"
-version := "1.1.4"
+version := "1.1.5"
 organization := "com.github.saurfang"
 
 scalaVersion := "2.11.6"
