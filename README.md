@@ -47,7 +47,8 @@ import org.apache.spark.sql.SQLContext
 
 val sqlContext = new SQLContext(sc)
 val df = sqlContext.read.format("com.github.saurfang.sas.spark").load("cars.sas7bdat")
-df.select("year", "model").write.format("com.databricks.spark.csv").save("newcars.csv")
+df.select("year", "model").write.format("com.databricks.spark.csv").save("newcars.csv") // spark < 2.0.0
+df.select("year", "model").write.format("csv").option("header", "true").save("newcars.csv") // spark 2.0.0+
 ```
 
 You can also use the implicits from `import com.github.saurfang.sas.spark._`.
@@ -60,8 +61,30 @@ val sqlContext = new SQLContext(sc)
 
 val cars = sqlContext.sasFile("cars.sas7bdat")
 
+// spark < 2.0.0
 import com.databricks.spark.csv._
 cars.select("year", "model").saveAsCsvFile("newcars.csv")
+```
+
+### Python API
+Similar to the Scala API, SAS data can be loaded using SQLContext.
+
+```scala
+from pyspark.sql import SQLContext
+
+sqlContext = SQLContext(sc)
+df = sqlContext.read.format("com.github.saurfang.sas.spark").load("cars.sas7bdat")
+```
+
+### R API
+Similar to the Scala API, SAS data can be loaded using SQLContext.
+
+```r
+// spark < 1.6.0 (Experimental)
+df <- read.df(sqlContext, "cars.sas7bdat", "com.github.saurfang.sas.spark")
+
+// spark 2.0.0+
+df <- read.df("cars.sas7bdat", "com.github.saurfang.sas.spark")
 ```
 
 ## SAS Export Runner
