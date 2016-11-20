@@ -69,7 +69,7 @@ cars.select("year", "model").saveAsCsvFile("newcars.csv")
 ### Python API
 Similar to the Scala API, SAS data can be loaded using SQLContext.
 
-```scala
+```python
 from pyspark.sql import SQLContext
 
 sqlContext = SQLContext(sc)
@@ -80,10 +80,10 @@ df = sqlContext.read.format("com.github.saurfang.sas.spark").load("cars.sas7bdat
 Similar to the Scala API, SAS data can be loaded using SQLContext.
 
 ```r
-// spark < 1.6.0 (Experimental)
+# spark < 1.6.0 (Experimental)
 df <- read.df(sqlContext, "cars.sas7bdat", "com.github.saurfang.sas.spark")
 
-// spark 2.0.0+
+# spark 2.0.0+
 df <- read.df("cars.sas7bdat", "com.github.saurfang.sas.spark")
 ```
 
