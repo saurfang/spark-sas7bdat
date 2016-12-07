@@ -15,8 +15,10 @@
  * WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  ***************************************************************************/
 
-package com.ggasoftware.parso;
+package com.epam.parso.impl;
 
+import com.epam.parso.Column;
+import com.epam.parso.SasFileProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,7 +27,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.*;
 
-import static com.ggasoftware.parso.SasFileConstants.*;
+import static com.epam.parso.impl.SasFileConstants.*;
 
 /**
  * This is a class that parses sas7bdat files. When parsing a sas7bdat file, to interact with the library,
