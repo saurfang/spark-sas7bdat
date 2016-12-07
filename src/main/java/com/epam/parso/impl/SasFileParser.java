@@ -221,7 +221,7 @@ public class SasFileParser {
     /**
      * SasFileParser builder class made using builder pattern.
      */
-    public static class Builder {
+    public static class ExternalBuilder {
         /**
          * Builder variable for {@link SasFileParser#sasFileStream} variable.
          */
@@ -242,7 +242,7 @@ public class SasFileParser {
          * @param val value to be set.
          * @return result builder.
          */
-        public Builder sasFileStream(InputStream val) {
+        public ExternalBuilder sasFileStream(InputStream val) {
             sasFileStream = val;
             return this;
         }
@@ -252,7 +252,7 @@ public class SasFileParser {
          * @param val value to be set.
          * @return result builder.
          */
-        public Builder encoding(String val) {
+        public ExternalBuilder encoding(String val) {
             encoding = val;
             return this;
         }
@@ -262,7 +262,7 @@ public class SasFileParser {
          * @param val value to be set.
          * @return result builder.
          */
-        public Builder byteOutput(Boolean val) {
+        public ExternalBuilder byteOutput(Boolean val) {
             byteOutput = val;
             return this;
         }
@@ -281,7 +281,7 @@ public class SasFileParser {
      *
      * @param builder the container with properties information.
      */
-    SasFileParser(Builder builder) {
+    SasFileParser(ExternalBuilder builder) {
         sasFileStream = new DataInputStream(builder.sasFileStream);
         encoding = builder.encoding;
         byteOutput = builder.byteOutput;

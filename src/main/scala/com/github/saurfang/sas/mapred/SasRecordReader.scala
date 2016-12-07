@@ -83,7 +83,7 @@ class SasRecordReader() extends RecordReader[NullWritable, Array[Object]] {
     fileInputStream = fs.open(file)
     countingInputStream = new CountingInputStream(fileInputStream)
     // open SAS file reader to read meta data
-    sasFileReader = new SasFileParser.Builder().sasFileStream(countingInputStream).build() // new SasFileReader(countingInputStream)
+    sasFileReader = new SasFileParser.ExternalBuilder().sasFileStream(countingInputStream).build() // new SasFileReader(countingInputStream)
     sasFileReaderPrivateExposer = PrivateMethodExposer(sasFileReader)
 
     log.info(sasFileProperties.toString)
