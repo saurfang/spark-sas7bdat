@@ -211,6 +211,13 @@ public class SasFileParser {
         subheaderIndexToClass = Collections.unmodifiableMap(tmpMap);
     }
 
+    public static class SasFileConstants implements com.epam.parso.impl.SasFileConstants {
+        /**
+         * The page type storing only metadata as a set of subheaders.
+         */
+        public static final int PAGE_META_TYPE = 0;
+    }
+
     /**
      * SasFileParser builder class made using builder pattern.
      */

@@ -2,7 +2,9 @@ package com.github.saurfang.sas.mapred
 
 import java.io.IOException
 
-import com.ggasoftware.parso.{SasFileConstants, SasFileParser, SasFileProperties}
+import com.epam.parso.SasFileProperties
+import com.epam.parso.impl.SasFileParser
+import com.epam.parso.impl.SasFileParser.SasFileConstants
 import com.github.saurfang.sas.util.PrivateMethodExposer
 import org.apache.commons.io.input.CountingInputStream
 import org.apache.hadoop.conf.Configuration

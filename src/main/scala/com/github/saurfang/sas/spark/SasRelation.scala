@@ -3,7 +3,8 @@ package com.github.saurfang.sas.spark
 import java.text.SimpleDateFormat
 import java.util.TimeZone
 
-import com.ggasoftware.parso.{SasFileConstants, SasFileReader}
+import com.epam.parso.SasFileReader
+import com.epam.parso.impl.SasFileParser.SasFileConstants
 import com.github.saurfang.sas.mapred.SasInputFormat
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.io.NullWritable

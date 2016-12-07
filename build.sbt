@@ -34,7 +34,7 @@ test in assembly := {}
 
 //override modified parser class
 assemblyMergeStrategy in assembly := {
-  case PathList("com", "ggasoftware", xs @ _*)         => MergeStrategy.first
+  case PathList("com", "epam", xs @ _*)         => MergeStrategy.first
   case x =>
     val oldStrategy = (assemblyMergeStrategy in assembly).value
     oldStrategy(x)
