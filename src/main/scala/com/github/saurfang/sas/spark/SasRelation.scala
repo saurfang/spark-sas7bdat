@@ -4,7 +4,7 @@ import java.text.SimpleDateFormat
 import java.util.TimeZone
 
 import com.epam.parso.SasFileReader
-import com.epam.parso.impl.SasFileParser.SasFileConstants
+import com.epam.parso.impl.SasFileParserExternal.SasFileConstants
 import com.epam.parso.impl.SasFileReaderImpl
 import com.github.saurfang.sas.mapred.SasInputFormat
 import org.apache.hadoop.fs.Path

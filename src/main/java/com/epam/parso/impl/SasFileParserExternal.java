@@ -34,8 +34,8 @@ import static com.epam.parso.impl.SasFileConstants.*;
  * This is a class that parses sas7bdat files. When parsing a sas7bdat file, to interact with the library,
  * do not use this class but use {@link SasFileReader} instead.
  */
-public class SasFileParser {
-    private static final Logger logger = LoggerFactory.getLogger(SasFileParser.class);
+public class SasFileParserExternal {
+    private static final Logger logger = LoggerFactory.getLogger(SasFileParserExternal.class);
 
     /**
      * The input stream through which the sas7bdat is read.
@@ -54,7 +54,7 @@ public class SasFileParser {
 
     /**
      * A cash to store the current page of the sas7bdat file. Used to avoid posing buffering requirements
-     * to {@link SasFileParser#sasFileStream}.
+     * to {@link SasFileParserExternal#sasFileStream}.
      */
     private byte[] cachedPage = null;
 
@@ -111,7 +111,7 @@ public class SasFileParser {
 
     /**
      * The list of text blocks with information about file compression and table columns (name, label, format).
-     * Every element corresponds to a {@link SasFileParser.ColumnTextSubheader}. The first text block includes
+     * Every element corresponds to a {@link SasFileParserExternal.ColumnTextSubheader}. The first text block includes
      * the information about compression.
      */
     private List<String> columnsNamesStrings = new ArrayList<String>();
@@ -151,7 +151,7 @@ public class SasFileParser {
     }
 
     /**
-     * The mapping of subheader signatures to the corresponding elements in {@link SasFileParser.SUBHEADER_INDEXES}.
+     * The mapping of subheader signatures to the corresponding elements in {@link SasFileParserExternal.SUBHEADER_INDEXES}.
      * Depending on the value at the {@link com.epam.parso.impl.SasFileConstants#ALIGN_2_OFFSET} offset, signatures take 4 bytes
      * for 32-bit version sas7bdat files and 8 bytes for the 64-bit version files.
      */
@@ -191,7 +191,7 @@ public class SasFileParser {
     }
 
     /**
-     * The mapping between elements from {@link SasFileParser.SUBHEADER_INDEXES} and classes corresponding
+     * The mapping between elements from {@link SasFileParserExternal.SUBHEADER_INDEXES} and classes corresponding
      * to each subheader. This is necessary because defining the subheader type being processed is dynamic.
      * Every class has an overridden function that processes the related subheader type.
      */
@@ -226,21 +226,21 @@ public class SasFileParser {
     }
 
     /**
-     * SasFileParser builder class made using builder pattern.
+     * SasFileParserExternal builder class made using builder pattern.
      */
     public static class ExternalBuilder {
         /**
-         * Builder variable for {@link SasFileParser#sasFileStream} variable.
+         * Builder variable for {@link SasFileParserExternal#sasFileStream} variable.
          */
         private InputStream sasFileStream = null;
 
         /**
-         * Default value for {@link SasFileParser#encoding} variable.
+         * Default value for {@link SasFileParserExternal#encoding} variable.
          */
         private String encoding = "ASCII";
 
         /**
-         * Default value for {@link SasFileParser#byteOutput} variable.
+         * Default value for {@link SasFileParserExternal#byteOutput} variable.
          */
         private Boolean byteOutput = false;
 
@@ -275,20 +275,20 @@ public class SasFileParser {
         }
 
         /**
-         * The function to create variable of SasFileParser class using current builder.
+         * The function to create variable of SasFileParserExternal class using current builder.
          */
-        public SasFileParser build() {
-            return new SasFileParser(this);
+        public SasFileParserExternal build() {
+            return new SasFileParserExternal(this);
         }
     }
 
     /**
      * The constructor that reads metadata from the sas7bdat, parses it and puts the results in
-     * {@link SasFileParser#sasFileProperties}.
+     * {@link SasFileParserExternal#sasFileProperties}.
      *
      * @param builder the container with properties information.
      */
-    SasFileParser(ExternalBuilder builder) {
+    SasFileParserExternal(ExternalBuilder builder) {
         sasFileStream = new DataInputStream(builder.sasFileStream);
         encoding = builder.encoding;
         byteOutput = builder.byteOutput;
@@ -360,9 +360,9 @@ public class SasFileParser {
 
     /**
      * The method that reads and parses metadata from the sas7bdat and puts the results in
-     * {@link SasFileParser#sasFileProperties}.
+     * {@link SasFileParserExternal#sasFileProperties}.
      *
-     * @throws IOException - appears if reading from the {@link SasFileParser#sasFileStream} stream is impossible.
+     * @throws IOException - appears if reading from the {@link SasFileParserExternal#sasFileStream} stream is impossible.
      */
     private void getMetadataFromSasFile() throws IOException {
         boolean endOfMetadata = false;
@@ -379,11 +379,11 @@ public class SasFileParser {
     }
 
     /**
-     * The method to read and parse metadata from the sas7bdat file`s header in {@link SasFileParser#sasFileProperties}.
-     * After reading is complete, {@link SasFileParser#currentFilePosition} is set to the end of the header whose length
+     * The method to read and parse metadata from the sas7bdat file`s header in {@link SasFileParserExternal#sasFileProperties}.
+     * After reading is complete, {@link SasFileParserExternal#currentFilePosition} is set to the end of the header whose length
      * is stored at the {@link com.epam.parso.impl.SasFileConstants#HEADER_SIZE_OFFSET} offset.
      *
-     * @throws IOException if reading from the {@link SasFileParser#sasFileStream} stream is impossible.
+     * @throws IOException if reading from the {@link SasFileParserExternal#sasFileStream} stream is impossible.
      */
     private void processSasFileHeader() throws IOException {
         int align1 = 0;
@@ -443,7 +443,7 @@ public class SasFileParser {
      * (at the {@link com.epam.parso.impl.SasFileConstants#SUBHEADER_COUNT_OFFSET} offset). Then, depending on the page type,
      * the method calls the function to process the page.
      *
-     * @throws IOException if reading from the {@link SasFileParser#sasFileStream} stream is impossible.
+     * @throws IOException if reading from the {@link SasFileParserExternal#sasFileStream} stream is impossible.
      */
     private boolean processSasFilePageMeta() throws IOException {
         int bitOffset = sasFileProperties.isU64() ? PAGE_BIT_OFFSET_X64 : PAGE_BIT_OFFSET_X86;
@@ -463,7 +463,7 @@ public class SasFileParser {
      *
      * @param bitOffset         the offset from the beginning of the page at which the page stores its metadata.
      * @param subheaderPointers the number of subheaders on the page.
-     * @throws IOException if reading from the {@link SasFileParser#sasFileStream} string is impossible.
+     * @throws IOException if reading from the {@link SasFileParserExternal#sasFileStream} string is impossible.
      */
     private void processPageMetadata(int bitOffset, List<SubheaderPointer> subheaderPointers)
             throws IOException {
@@ -497,9 +497,9 @@ public class SasFileParser {
      * The function to read a subheader signature at the offset known from its ({@link SubheaderPointer}).
      *
      * @param subheaderPointerOffset the offset at which the subheader is located.
-     * @return - the subheader signature to search for in the {@link SasFileParser#SUBHEADER_SIGNATURE_TO_INDEX}
+     * @return - the subheader signature to search for in the {@link SasFileParserExternal#SUBHEADER_SIGNATURE_TO_INDEX}
      *           mapping later.
-     * @throws IOException if reading from the {@link SasFileParser#sasFileStream} stream is impossible.
+     * @throws IOException if reading from the {@link SasFileParserExternal#sasFileStream} stream is impossible.
      */
     private long readSubheaderSignature(Long subheaderPointerOffset) throws IOException {
         int intOrLongLength = sasFileProperties.isU64() ? BYTES_IN_LONG : BYTES_IN_INT;
@@ -515,10 +515,10 @@ public class SasFileParser {
      * and {@link SubheaderPointer#type}.
      *
      * @param subheaderSignature the subheader signature to search for in the
-     *                           {@link SasFileParser#SUBHEADER_SIGNATURE_TO_INDEX} mapping
+     *                           {@link SasFileParserExternal#SUBHEADER_SIGNATURE_TO_INDEX} mapping
      * @param compression        the type of subheader compression ({@link SubheaderPointer#compression})
      * @param type               the subheader type ({@link SubheaderPointer#type})
-     * @return an element from the  {@link SasFileParser.SUBHEADER_INDEXES} enumeration that defines the type of
+     * @return an element from the  {@link SasFileParserExternal.SUBHEADER_INDEXES} enumeration that defines the type of
      *         the current subheader
      */
     private SUBHEADER_INDEXES chooseSubheaderClass(long subheaderSignature, int compression, int type) {
@@ -537,7 +537,7 @@ public class SasFileParser {
      * @param subheaderPointerOffset the offset before the list of {@link SubheaderPointer}.
      * @param subheaderPointerIndex  the index of the subheader pointer being read.
      * @return the subheader pointer.
-     * @throws IOException if reading from the {@link SasFileParser#sasFileStream} stream is impossible.
+     * @throws IOException if reading from the {@link SasFileParserExternal#sasFileStream} stream is impossible.
      */
     private SubheaderPointer processSubheaderPointers(long subheaderPointerOffset, int subheaderPointerIndex)
             throws IOException {
@@ -572,7 +572,7 @@ public class SasFileParser {
          *
          * @param subheaderOffset the offset at which the subheader is located.
          * @param subheaderLength the subheader length.
-         * @throws IOException if reading from the {@link SasFileParser#sasFileStream} stream is impossible.
+         * @throws IOException if reading from the {@link SasFileParserExternal#sasFileStream} stream is impossible.
          */
         @Override
         public void processSubheader(long subheaderOffset, long subheaderLength) throws IOException {
@@ -606,7 +606,7 @@ public class SasFileParser {
          *
          * @param subheaderOffset the offset at which the subheader is located.
          * @param subheaderLength the subheader length.
-         * @throws IOException if reading from the {@link SasFileParser#sasFileStream} stream is impossible.
+         * @throws IOException if reading from the {@link SasFileParserExternal#sasFileStream} stream is impossible.
          */
         @Override
         public void processSubheader(long subheaderOffset, long subheaderLength) throws IOException {
@@ -630,7 +630,7 @@ public class SasFileParser {
          *
          * @param subheaderOffset the offset at which the subheader is located.
          * @param subheaderLength the subheader length.
-         * @throws IOException if reading from the {@link SasFileParser#sasFileStream} stream is impossible.
+         * @throws IOException if reading from the {@link SasFileParserExternal#sasFileStream} stream is impossible.
          */
         @Override
         public void processSubheader(long subheaderOffset, long subheaderLength) throws IOException {
@@ -640,7 +640,7 @@ public class SasFileParser {
     /**
      * The class to process subheaders of the ColumnTextSubheader type that store information about
      * file compression and table columns (name, label, format). The first subheader of this type includes the file
-     * compression information. The results are stored in {@link SasFileParser#columnsNamesStrings} and
+     * compression information. The results are stored in {@link SasFileParserExternal#columnsNamesStrings} and
      * {@link SasFileProperties#compressionMethod}.
      */
     private class ColumnTextSubheader implements ProcessingSubheader {
@@ -650,7 +650,7 @@ public class SasFileParser {
          *
          * @param subheaderOffset the offset at which the subheader is located.
          * @param subheaderLength the subheader length.
-         * @throws IOException if reading from the {@link SasFileParser#sasFileStream} stream is impossible.
+         * @throws IOException if reading from the {@link SasFileParserExternal#sasFileStream} stream is impossible.
          */
         @Override
         public void processSubheader(long subheaderOffset, long subheaderLength) throws IOException {
@@ -704,7 +704,7 @@ public class SasFileParser {
      * The class to process subheaders of the ColumnNameSubheader type that store information about the index of
      * corresponding subheader of the ColumnTextSubheader type whose text field stores the name of the column
      * corresponding to the current subheader. They also store the offset (in symbols) of the names from the beginning
-     * of the text field and the length of names (in symbols). The {@link SasFileParser#columnsNamesList} list stores
+     * of the text field and the length of names (in symbols). The {@link SasFileParserExternal#columnsNamesList} list stores
      * the resulting names.
      */
     private class ColumnNameSubheader implements ProcessingSubheader {
@@ -716,7 +716,7 @@ public class SasFileParser {
          *
          * @param subheaderOffset the offset at which the subheader is located.
          * @param subheaderLength the subheader length.
-         * @throws IOException if reading from the {@link SasFileParser#sasFileStream} stream is impossible.
+         * @throws IOException if reading from the {@link SasFileParserExternal#sasFileStream} stream is impossible.
          */
         @Override
         public void processSubheader(long subheaderOffset, long subheaderLength) throws IOException {
@@ -747,8 +747,8 @@ public class SasFileParser {
      * The class to process subheaders of the ColumnAttributesSubheader type that store information about
      * the data length (in bytes) of the current column and about the offset (in bytes) of the current column`s data
      * from the beginning of the row with data. They also store the column`s data type: {@link Number} and
-     * {@link String}. The resulting names are stored in the {@link SasFileParser#columnsDataOffset},
-     * {@link SasFileParser#columnsDataLength}, and{@link SasFileParser#columnsTypesList}.
+     * {@link String}. The resulting names are stored in the {@link SasFileParserExternal#columnsDataOffset},
+     * {@link SasFileParserExternal#columnsDataLength}, and{@link SasFileParserExternal#columnsTypesList}.
      */
     private class ColumnAttributesSubheader implements ProcessingSubheader {
         /**
@@ -757,7 +757,7 @@ public class SasFileParser {
          *
          * @param subheaderOffset the offset at which the subheader is located.
          * @param subheaderLength the subheader length.
-         * @throws IOException if reading from the {@link SasFileParser#sasFileStream} stream is impossible.
+         * @throws IOException if reading from the {@link SasFileParserExternal#sasFileStream} stream is impossible.
          */
         @Override
         public void processSubheader(long subheaderOffset, long subheaderLength) throws IOException {
@@ -788,7 +788,7 @@ public class SasFileParser {
      *   to the current subheader,
      * - offsets (in symbols) of the formats and labels from the beginning of the text field,
      * - lengths of the formats and labels (in symbols),
-     * The {@link SasFileParser#columns} list stores the results.
+     * The {@link SasFileParserExternal#columns} list stores the results.
      */
     private class FormatAndLabelSubheader implements ProcessingSubheader {
         /**
@@ -802,7 +802,7 @@ public class SasFileParser {
          *
          * @param subheaderOffset the offset at which the subheader is located.
          * @param subheaderLength the subheader length.
-         * @throws IOException if reading from the {@link SasFileParser#sasFileStream} stream is impossible.
+         * @throws IOException if reading from the {@link SasFileParserExternal#sasFileStream} stream is impossible.
          */
         @Override
         public void processSubheader(long subheaderOffset, long subheaderLength) throws IOException {
@@ -848,7 +848,7 @@ public class SasFileParser {
          *
          * @param subheaderOffset the offset at which the subheader is located.
          * @param subheaderLength the subheader length.
-         * @throws IOException if reading from the {@link SasFileParser#sasFileStream} stream is impossible.
+         * @throws IOException if reading from the {@link SasFileParserExternal#sasFileStream} stream is impossible.
          */
         @Override
         public void processSubheader(long subheaderOffset, long subheaderLength) throws IOException {
@@ -861,12 +861,12 @@ public class SasFileParser {
     private class DataSubheader implements ProcessingSubheader {
         /**
          * The method to read compressed or uncompressed data from the subheader. The results are stored as a row
-         * in {@link SasFileParser#currentRow}. The {@link SasFileParser#processByteArrayWithData(long, long)} function
+         * in {@link SasFileParserExternal#currentRow}. The {@link SasFileParserExternal#processByteArrayWithData(long, long)} function
          * converts the array of bytes into a list of objects.
          *
          * @param subheaderOffset the offset at which the subheader is located.
          * @param subheaderLength the subheader length.
-         * @throws IOException if reading from the {@link SasFileParser#sasFileStream} stream is impossible.
+         * @throws IOException if reading from the {@link SasFileParserExternal#sasFileStream} stream is impossible.
          */
         @Override
         public void processSubheader(long subheaderOffset, long subheaderLength) throws IOException {
@@ -878,7 +878,7 @@ public class SasFileParser {
      * The function to read next row from current sas7bdat file.
      *
      * @return the object array containing elements of current row.
-     * @throws IOException if reading from the {@link SasFileParser#sasFileStream} stream is impossible.
+     * @throws IOException if reading from the {@link SasFileParserExternal#sasFileStream} stream is impossible.
      */
     Object[] readNext() throws IOException {
         int bitOffset = sasFileProperties.isU64() ? PAGE_BIT_OFFSET_X64 : PAGE_BIT_OFFSET_X86;
@@ -923,11 +923,11 @@ public class SasFileParser {
     }
 
     /**
-     * The method to read next page from sas7bdat file and put it into {@link SasFileParser#cachedPage}. If this page
+     * The method to read next page from sas7bdat file and put it into {@link SasFileParserExternal#cachedPage}. If this page
      * has {@link SasFileConstants#PAGE_META_TYPE} type method process it's subheaders. Method skips page with type
      * other than {@link SasFileConstants#PAGE_META_TYPE}, {@link com.epam.parso.impl.SasFileConstants#PAGE_MIX_TYPE} or
      * {@link com.epam.parso.impl.SasFileConstants#PAGE_DATA_TYPE} and reads next.
-     * @throws IOException if reading from the {@link SasFileParser#sasFileStream} stream is impossible.
+     * @throws IOException if reading from the {@link SasFileParserExternal#sasFileStream} stream is impossible.
      */
     void readNextPage() throws IOException {
         processNextPage();
@@ -956,8 +956,8 @@ public class SasFileParser {
     }
 
     /**
-     * The method to read page metadata and store it in {@link SasFileParser#currentPageType},
-     * {@link SasFileParser#currentPageBlockCount} and {@link SasFileParser#currentPageSubheadersCount}.
+     * The method to read page metadata and store it in {@link SasFileParserExternal#currentPageType},
+     * {@link SasFileParserExternal#currentPageBlockCount} and {@link SasFileParserExternal#currentPageSubheadersCount}.
      * @throws IOException
      */
     void readPageHeader() throws IOException {
@@ -979,7 +979,7 @@ public class SasFileParser {
      * The function to decompress data. Compressed data are an array of bytes with control bytes and data bytes.
      * The project documentation contains descriptions of the decompression algorithm.
      *
-     * @param offset the offset of bytes array in {@link SasFileParser#cachedPage} that contains compressed data.
+     * @param offset the offset of bytes array in {@link SasFileParserExternal#cachedPage} that contains compressed data.
      * @param length the length of bytes array that contains compressed data.
      * @return an array of bytes with decompressed data.
      */
@@ -1157,7 +1157,7 @@ public class SasFileParser {
      * @param offset the array of offsets.
      * @param length the array of lengths.
      * @return the list of bytes arrays.
-     * @throws IOException if reading from the {@link SasFileParser#sasFileStream} stream is impossible.
+     * @throws IOException if reading from the {@link SasFileParserExternal#sasFileStream} stream is impossible.
      */
     private List<byte[]> getBytesFromFile(Long[] offset, Integer[] length) throws IOException {
         List<byte[]> vars = new ArrayList<byte[]>();
