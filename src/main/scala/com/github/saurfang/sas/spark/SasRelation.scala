@@ -5,6 +5,7 @@ import java.util.TimeZone
 
 import com.epam.parso.SasFileReader
 import com.epam.parso.impl.SasFileParser.SasFileConstants
+import com.epam.parso.impl.SasFileReaderImpl
 import com.github.saurfang.sas.mapred.SasInputFormat
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.io.NullWritable
@@ -96,7 +97,7 @@ case class SasRelation protected[spark](
       val path = new Path(location)
       val fs = path.getFileSystem(conf)
       val inputStream = fs.open(path)
-      val sasFileReader = new SasFileReader(inputStream)
+      val sasFileReader = new SasFileReaderImpl(inputStream)
       import scala.collection.JavaConversions._
       val schemaFields = sasFileReader.getColumns.map { column =>
         val columnType =

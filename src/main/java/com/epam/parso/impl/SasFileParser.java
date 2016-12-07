@@ -211,11 +211,18 @@ public class SasFileParser {
         subheaderIndexToClass = Collections.unmodifiableMap(tmpMap);
     }
 
-    public static class SasFileConstants implements com.epam.parso.impl.SasFileConstants {
+    public static class SasFileConstants {
         /**
          * The page type storing only metadata as a set of subheaders.
          */
         public static final int PAGE_META_TYPE = 0;
+
+        public static final List<String> DATE_TIME_FORMAT_STRINGS = com.epam.parso.impl.SasFileConstants.DATE_TIME_FORMAT_STRINGS;
+
+        public static final List<String> DATE_FORMAT_STRINGS = com.epam.parso.impl.SasFileConstants.DATE_FORMAT_STRINGS;
+
+        public static double EPSILON = com.epam.parso.impl.SasFileConstants.EPSILON;
+
     }
 
     /**
