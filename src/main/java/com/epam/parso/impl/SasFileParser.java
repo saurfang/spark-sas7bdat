@@ -19,6 +19,7 @@ package com.epam.parso.impl;
 
 import com.epam.parso.Column;
 import com.epam.parso.SasFileProperties;
+import com.epam.parso.SasFileReader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -106,7 +107,7 @@ public class SasFileParser {
     /**
      * The variable to store all the properties from the sas7bdat file.
      */
-    private SasFileProperties sasFileProperties = new SasFileProperties.Builder().build();
+    private SasFileProperties sasFileProperties = new SasFileProperties();
 
     /**
      * The list of text blocks with information about file compression and table columns (name, label, format).
@@ -185,8 +186,8 @@ public class SasFileParser {
     private Map<String, Decompressor> literalsToDecompressor = new HashMap<String, Decompressor>();
 
     {
-        literalsToDecompressor.put(COMPRESS_CHAR_IDENTIFYING_STRING, CharDecompressor.instance);
-        literalsToDecompressor.put(COMPRESS_BIN_IDENTIFYING_STRING, BinDecompressor.instance);
+        literalsToDecompressor.put(COMPRESS_CHAR_IDENTIFYING_STRING, CharDecompressor.INSTANCE);
+        literalsToDecompressor.put(COMPRESS_BIN_IDENTIFYING_STRING, BinDecompressor.INSTANCE);
     }
 
     /**
