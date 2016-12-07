@@ -59,8 +59,8 @@ public class SasFileParser {
     private byte[] cachedPage = null;
 
     /**
-     * The type of the current page when reading the file. If it is other than {@link SasFileConstants#PAGE_META_TYPE},
-     * {@link SasFileConstants#PAGE_MIX_TYPE} and {@link SasFileConstants#PAGE_DATA_TYPE} page is skipped.
+     * The type of the current page when reading the file. If it is other than {@link com.epam.parso.impl.SasFileConstants#PAGE_META_TYPE},
+     * {@link com.epam.parso.impl.SasFileConstants#PAGE_MIX_TYPE} and {@link com.epam.parso.impl.SasFileConstants#PAGE_DATA_TYPE} page is skipped.
      */
     private int currentPageType;
 
@@ -152,7 +152,7 @@ public class SasFileParser {
 
     /**
      * The mapping of subheader signatures to the corresponding elements in {@link SasFileParser.SUBHEADER_INDEXES}.
-     * Depending on the value at the {@link SasFileConstants#ALIGN_2_OFFSET} offset, signatures take 4 bytes
+     * Depending on the value at the {@link com.epam.parso.impl.SasFileConstants#ALIGN_2_OFFSET} offset, signatures take 4 bytes
      * for 32-bit version sas7bdat files and 8 bytes for the 64-bit version files.
      */
     private static final Map<Long, SUBHEADER_INDEXES> SUBHEADER_SIGNATURE_TO_INDEX;
@@ -302,8 +302,8 @@ public class SasFileParser {
 
     /**
      * The class to store subheaders pointers that contain information about the offset, length, type
-     * and compression of subheaders (see {@link SasFileConstants#TRUNCATED_SUBHEADER_ID},
-     * {@link SasFileConstants#COMPRESSED_SUBHEADER_ID}, {@link SasFileConstants#COMPRESSED_SUBHEADER_TYPE}
+     * and compression of subheaders (see {@link com.epam.parso.impl.SasFileConstants#TRUNCATED_SUBHEADER_ID},
+     * {@link com.epam.parso.impl.SasFileConstants#COMPRESSED_SUBHEADER_ID}, {@link com.epam.parso.impl.SasFileConstants#COMPRESSED_SUBHEADER_TYPE}
      * for details).
      */
     private class SubheaderPointer {
@@ -318,15 +318,15 @@ public class SasFileParser {
         private long length;
 
         /**
-         * The type of subheader compression. If the type is {@link SasFileConstants#TRUNCATED_SUBHEADER_ID}
+         * The type of subheader compression. If the type is {@link com.epam.parso.impl.SasFileConstants#TRUNCATED_SUBHEADER_ID}
          * the subheader does not contain information relevant to the current issues. If the type is
-         * {@link SasFileConstants#COMPRESSED_SUBHEADER_ID} the subheader can be compressed
+         * {@link com.epam.parso.impl.SasFileConstants#COMPRESSED_SUBHEADER_ID} the subheader can be compressed
          * (depends on {@link SubheaderPointer#type}).
          */
         private byte compression;
 
         /**
-         * The subheader type. If the type is {@link SasFileConstants#COMPRESSED_SUBHEADER_TYPE}
+         * The subheader type. If the type is {@link com.epam.parso.impl.SasFileConstants#COMPRESSED_SUBHEADER_TYPE}
          * the subheader is compressed. Otherwise, there is no compression.
          */
         private byte type;
@@ -337,10 +337,10 @@ public class SasFileParser {
          * @param offset      the offset of the subheader from the beginning of the page.
          * @param length      the subheader length.
          * @param compression the subheader compression type. If the type is
-         *                    {@link SasFileConstants#TRUNCATED_SUBHEADER_ID}, the subheader does not contain useful
-         *                    information. If the type is {@link SasFileConstants#COMPRESSED_SUBHEADER_ID},
+         *                    {@link com.epam.parso.impl.SasFileConstants#TRUNCATED_SUBHEADER_ID}, the subheader does not contain useful
+         *                    information. If the type is {@link com.epam.parso.impl.SasFileConstants#COMPRESSED_SUBHEADER_ID},
          *                    the subheader can be compressed (depends on {@link SubheaderPointer#type}).
-         * @param type        the subheader type. If the type is {@link SasFileConstants#COMPRESSED_SUBHEADER_TYPE}
+         * @param type        the subheader type. If the type is {@link com.epam.parso.impl.SasFileConstants#COMPRESSED_SUBHEADER_TYPE}
          *                    the subheader is compressed, otherwise, it is not.
          */
         SubheaderPointer(long offset, long length, byte compression, byte type) {
@@ -381,7 +381,7 @@ public class SasFileParser {
     /**
      * The method to read and parse metadata from the sas7bdat file`s header in {@link SasFileParser#sasFileProperties}.
      * After reading is complete, {@link SasFileParser#currentFilePosition} is set to the end of the header whose length
-     * is stored at the {@link SasFileConstants#HEADER_SIZE_OFFSET} offset.
+     * is stored at the {@link com.epam.parso.impl.SasFileConstants#HEADER_SIZE_OFFSET} offset.
      *
      * @throws IOException if reading from the {@link SasFileParser#sasFileStream} stream is impossible.
      */
@@ -438,9 +438,9 @@ public class SasFileParser {
 
     /**
      * The method to read pages of the sas7bdat file. First, the method reads the page type
-     * (at the {@link SasFileConstants#PAGE_TYPE_OFFSET} offset), the number of rows on the page
-     * (at the {@link SasFileConstants#BLOCK_COUNT_OFFSET} offset), and the number of subheaders
-     * (at the {@link SasFileConstants#SUBHEADER_COUNT_OFFSET} offset). Then, depending on the page type,
+     * (at the {@link com.epam.parso.impl.SasFileConstants#PAGE_TYPE_OFFSET} offset), the number of rows on the page
+     * (at the {@link com.epam.parso.impl.SasFileConstants#BLOCK_COUNT_OFFSET} offset), and the number of subheaders
+     * (at the {@link com.epam.parso.impl.SasFileConstants#SUBHEADER_COUNT_OFFSET} offset). Then, depending on the page type,
      * the method calls the function to process the page.
      *
      * @throws IOException if reading from the {@link SasFileParser#sasFileStream} stream is impossible.
@@ -458,7 +458,7 @@ public class SasFileParser {
 
     /**
      * The method to parse and read metadata of a page, used for pages of the {@link SasFileConstants#PAGE_META_TYPE}
-     * and {@link SasFileConstants#PAGE_MIX_TYPE} types. The method goes through subheaders, one by one, and calls
+     * and {@link com.epam.parso.impl.SasFileConstants#PAGE_MIX_TYPE} types. The method goes through subheaders, one by one, and calls
      * the processing functions depending on their signatures.
      *
      * @param bitOffset         the offset from the beginning of the page at which the page stores its metadata.
@@ -561,7 +561,7 @@ public class SasFileParser {
     /**
      * The class to process subheaders of the RowSizeSubheader type that store information about the table rows length
      * (in bytes), the number of rows in the table and the number of rows on the last page of the
-     * {@link SasFileConstants#PAGE_MIX_TYPE} type. The results are stored in {@link SasFileProperties#rowLength},
+     * {@link com.epam.parso.impl.SasFileConstants#PAGE_MIX_TYPE} type. The results are stored in {@link SasFileProperties#rowLength},
      * {@link SasFileProperties#rowCount}, and {@link SasFileProperties#mixPageRowCount}, respectively.
      */
     private class RowSizeSubheader implements ProcessingSubheader {
@@ -925,8 +925,8 @@ public class SasFileParser {
     /**
      * The method to read next page from sas7bdat file and put it into {@link SasFileParser#cachedPage}. If this page
      * has {@link SasFileConstants#PAGE_META_TYPE} type method process it's subheaders. Method skips page with type
-     * other than {@link SasFileConstants#PAGE_META_TYPE}, {@link SasFileConstants#PAGE_MIX_TYPE} or
-     * {@link SasFileConstants#PAGE_DATA_TYPE} and reads next.
+     * other than {@link SasFileConstants#PAGE_META_TYPE}, {@link com.epam.parso.impl.SasFileConstants#PAGE_MIX_TYPE} or
+     * {@link com.epam.parso.impl.SasFileConstants#PAGE_DATA_TYPE} and reads next.
      * @throws IOException if reading from the {@link SasFileParser#sasFileStream} stream is impossible.
      */
     void readNextPage() throws IOException {
@@ -1186,7 +1186,7 @@ public class SasFileParser {
 
     /**
      * The function to convert a bytes array into a number (int or long depending on the value located at
-     * the {@link SasFileConstants#ALIGN_2_OFFSET} offset).
+     * the {@link com.epam.parso.impl.SasFileConstants#ALIGN_2_OFFSET} offset).
      *
      * @param byteBuffer the long value represented by a bytes array.
      * @return a long value. If the number was stored as int, then after conversion it is converted to long
@@ -1203,12 +1203,12 @@ public class SasFileParser {
     /**
      * The function to convert an array of bytes with any order of bytes into {@link ByteBuffer}.
      * {@link ByteBuffer} has the order of bytes defined in the file located at the
-     * {@link SasFileConstants#ALIGN_2_OFFSET} offset.
+     * {@link com.epam.parso.impl.SasFileConstants#ALIGN_2_OFFSET} offset.
      * Later the parser converts result {@link ByteBuffer} into a number.
      *
      * @param data the input array of bytes with the little-endian or big-endian order.
      * @return {@link ByteBuffer} with the order of bytes defined in the file located at
-     *         the {@link SasFileConstants#ALIGN_2_OFFSET} offset.
+     *         the {@link com.epam.parso.impl.SasFileConstants#ALIGN_2_OFFSET} offset.
      */
     private ByteBuffer byteArrayToByteBuffer(byte[] data) {
         ByteBuffer byteBuffer = ByteBuffer.wrap(data);
