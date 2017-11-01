@@ -5,9 +5,10 @@ This also includes a `SasInputFormat` designed for Hadoop mapreduce. This format
 thus can achieve high parallelism for a large SAS file.
 
 This library is inspired by [spark-csv](https://github.com/databricks/spark-csv) and
-currently uses [parso](http://lifescience.opensource.epam.com/parso.html) for parsing as it is the only public available parser
-that handles both forms of SAS compression (CHAR and BINARY). Note *parso* is licensed under GPL-3 and subsequently
-this library is also licensed as such.
+currently uses [parso](https://github.com/epam/parso/) for parsing as it is the only public available parser
+that handles both forms of SAS compression (CHAR and BINARY). 
+
+Note *parso* is licensed under GPL-3 and subsequently this library is also licensed as such. Parso library is currently under process of migrating over to Apache 2.0 license (see https://github.com/epam/parso/issues/19 for details).
 
 [![Build Status](https://travis-ci.org/saurfang/spark-sas7bdat.svg?branch=master)](https://travis-ci.org/saurfang/spark-sas7bdat)
 
