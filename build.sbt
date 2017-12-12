@@ -9,7 +9,8 @@ scalacOptions ++= Seq("-target:jvm-1.7" )
 javacOptions ++= Seq("-source", "1.7", "-target", "1.7")
 
 libraryDependencies ++= Seq(
-  "com.ggasoftware" % "parso" % "1.2.1",
+//  "com.ggasoftware" % "parso" % "1.2.1",
+  "com.epam" % "parso" % "2.0.1",
   "org.scalatest" %% "scalatest" % "2.2.4" % "test",
   "org.apache.logging.log4j" %% "log4j-api-scala" % "2.7"
 )
@@ -33,7 +34,7 @@ test in assembly := {}
 
 //override modified parser class
 assemblyMergeStrategy in assembly := {
-  case PathList("com", "ggasoftware", xs @ _*)         => MergeStrategy.first
+  case PathList("com", "epam", xs @ _*)         => MergeStrategy.first
   case x =>
     val oldStrategy = (assemblyMergeStrategy in assembly).value
     oldStrategy(x)
