@@ -14,7 +14,7 @@ class PrivateMethodCaller(x: AnyRef, methodName: String) {
 
 /**
  *
- * Use this to invoke private methods in [[com.ggasoftware.parso.SasFileParser]] so we don't need to modify it
+ * Use this to invoke private methods in [[com.epam.parso.impl.SasFileParser]] so we don't need to modify it
  * Credits to https://gist.github.com/jorgeortiz85/908035
  * Usage:
  *  p(instance)('privateMethod)(arg1, arg2, arg3)

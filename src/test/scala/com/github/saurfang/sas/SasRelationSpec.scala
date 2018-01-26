@@ -1,9 +1,9 @@
 package com.github.saurfang.sas
 
-import com.ggasoftware.parso.SasFileConstants
+import com.github.saurfang.sas.parso.ParsoWrapper
 import org.apache.hadoop.mapred.JobConf
 import org.apache.spark.sql.{SQLContext, SaveMode}
-import org.apache.spark.{SharedSparkContext}
+import org.apache.spark.SharedSparkContext
 import org.scalactic.TolerantNumerics
 import org.scalatest._
 import org.apache.log4j.LogManager
@@ -28,7 +28,7 @@ class SasRelationSpec extends FlatSpec with Matchers with SharedSparkContext{
     val referenceDF = sqlContext.read.format("csv").option("header", "true").load(getClass.getResource("/random.csv").getPath).cache()
 
     import TolerantNumerics._
-    implicit val dblEquality = tolerantDoubleEquality(SasFileConstants.EPSILON)
+    implicit val dblEquality = tolerantDoubleEquality(ParsoWrapper.EPSILON)
 
     randomDF.collect().zip(referenceDF.collect()).foreach {
       case (row1, row2) =>
