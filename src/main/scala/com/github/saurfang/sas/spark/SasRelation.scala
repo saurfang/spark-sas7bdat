@@ -3,8 +3,10 @@ package com.github.saurfang.sas.spark
 import java.text.SimpleDateFormat
 import java.util.TimeZone
 
-import com.ggasoftware.parso.{SasFileConstants, SasFileReader}
+import com.epam.parso.impl.{SasFileConstants, SasFileReaderImpl}
+import com.epam.parso.SasFileReader
 import com.github.saurfang.sas.mapred.SasInputFormat
+import com.github.saurfang.sas.parso.ParsoWrapper
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.io.NullWritable
 import org.apache.hadoop.mapred.{FileInputFormat, JobConf}
@@ -95,14 +97,14 @@ case class SasRelation protected[spark](
       val path = new Path(location)
       val fs = path.getFileSystem(conf)
       val inputStream = fs.open(path)
-      val sasFileReader = new SasFileReader(inputStream)
+      val sasFileReader = new SasFileReaderImpl(inputStream)
       import scala.collection.JavaConversions._
       val schemaFields = sasFileReader.getColumns.map { column =>
         val columnType =
           if (column.getType == classOf[Number]) {
-            if (SasFileConstants.DATE_TIME_FORMAT_STRINGS.contains(column.getFormat))
+            if (ParsoWrapper.DATE_TIME_FORMAT_STRINGS.contains(column.getFormat))
               TimestampType
-            else if (SasFileConstants.DATE_FORMAT_STRINGS.contains(column.getFormat))
+            else if (ParsoWrapper.DATE_FORMAT_STRINGS.contains(column.getFormat))
               DateType
             else
               DoubleType
