@@ -9,7 +9,7 @@ scalacOptions ++= Seq("-target:jvm-1.7" )
 javacOptions ++= Seq("-source", "1.7", "-target", "1.7")
 
 libraryDependencies ++= Seq(
-  "com.epam" % "parso" % "2.0.7",
+  "com.epam" % "parso" % "2.0.8",
   "org.scalatest" %% "scalatest" % "2.2.4" % "test",
   "org.apache.logging.log4j" %% "log4j-api-scala" % "2.7"
 )
@@ -20,7 +20,7 @@ sparkVersion := "2.0.1"
 sparkComponents += "sql"
 spAppendScalaVersion := true
 credentials += Credentials(Path.userHome / ".ivy2" / ".sbtcredentials")
-licenses += "GPL-3.0" -> url("http://opensource.org/licenses/GPL-3.0")
+licenses += "Apache-2.0" -> url("http://opensource.org/licenses/Apache-2.0")
 
 //include provided dependencies in sbt run task
 run in Compile <<= Defaults.runTask(fullClasspath in Compile, mainClass in (Compile, run), runner in (Compile, run))
