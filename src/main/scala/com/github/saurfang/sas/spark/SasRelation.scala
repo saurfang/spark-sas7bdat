@@ -1,3 +1,19 @@
+// Copyright (C) 2015 Forest Fang.
+// See the LICENCE.txt file distributed with this work for additional
+// information regarding copyright ownership.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package com.github.saurfang.sas.spark
 
 import java.text.SimpleDateFormat
@@ -11,7 +27,7 @@ import org.apache.hadoop.fs.Path
 import org.apache.hadoop.io.NullWritable
 import org.apache.hadoop.mapred.{FileInputFormat, JobConf}
 import org.apache.log4j.LogManager
-import org.apache.spark.rdd.HadoopRDD
+import org.apache.spark.rdd.{HadoopRDD, RDD}
 import org.apache.spark.sql.SQLContext
 import org.apache.spark.sql.sources.{BaseRelation, TableScan}
 import org.apache.spark.sql.Row
@@ -34,7 +50,7 @@ case class SasRelation protected[spark](
   val schema = inferSchema()
 
   // By making this a lazy val we keep the RDD around, amortizing the cost of locating splits.
-  def buildScan() = {
+  def buildScan(): RDD[Row] = {
     FileInputFormat.setInputPaths(conf, new Path(location))
     val baseRDD = new HadoopRDD[NullWritable, Array[Object]](
       sqlContext.sparkContext,
@@ -102,12 +118,13 @@ case class SasRelation protected[spark](
       val schemaFields = sasFileReader.getColumns.map { column =>
         val columnType =
           if (column.getType == classOf[Number]) {
-            if (ParsoWrapper.DATE_TIME_FORMAT_STRINGS.contains(column.getFormat))
+            if (ParsoWrapper.DATE_TIME_FORMAT_STRINGS.contains(column.getFormat)) {
               TimestampType
-            else if (ParsoWrapper.DATE_FORMAT_STRINGS.contains(column.getFormat))
+            } else if (ParsoWrapper.DATE_FORMAT_STRINGS.contains(column.getFormat)) {
               DateType
-            else
+            } else {
               DoubleType
+            }
           } else {
             StringType
           }

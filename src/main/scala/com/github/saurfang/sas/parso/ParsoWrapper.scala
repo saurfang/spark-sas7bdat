@@ -1,4 +1,4 @@
-// Copyright (C) 2011-2012 the original author or authors.
+// Copyright (C) 2015 Forest Fang.
 // See the LICENCE.txt file distributed with this work for additional
 // information regarding copyright ownership.
 //
@@ -78,8 +78,6 @@ class SasFileParserWrapper(val sasFileParser: SasFileParser) {
   def readNextPage(): Unit = sasFileReaderPrivateExposer('readNextPage)()
 
   def readNext(): Array[Object] = sasFileReaderPrivateExposer('readNext)().asInstanceOf[Array[Object]]
-
-  def recordValue: Array[Object] = sasFileReaderPrivateExposer('readNext)().asInstanceOf[Array[Object]]
 
   def currentPageType: Int = sasFileReaderPrivateExposer.get[Int]('currentPageType)
 
