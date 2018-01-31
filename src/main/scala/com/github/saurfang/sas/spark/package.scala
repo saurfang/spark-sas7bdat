@@ -1,4 +1,4 @@
-// Copyright (C) 2011-2012 the original author or authors.
+// Copyright (C) 2015 Forest Fang.
 // See the LICENCE.txt file distributed with this work for additional
 // information regarding copyright ownership.
 //
@@ -17,7 +17,7 @@
 package com.github.saurfang.sas
 
 import org.apache.hadoop.mapred.JobConf
-import org.apache.spark.sql.SQLContext
+import org.apache.spark.sql.{DataFrame, SQLContext}
 
 package object spark {
 
@@ -26,7 +26,7 @@ package object spark {
    */
   implicit class SasContext(sqlContext: SQLContext) {
     def sasFile(filePath: String,
-                conf: JobConf = new JobConf()) = {
+                conf: JobConf = new JobConf()): DataFrame = {
       val sasRelation = SasRelation(
         location = filePath,
         conf = conf)(sqlContext)

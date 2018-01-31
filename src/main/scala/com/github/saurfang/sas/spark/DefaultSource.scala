@@ -1,4 +1,4 @@
-// Copyright (C) 2011-2012 the original author or authors.
+// Copyright (C) 2015 Forest Fang.
 // See the LICENCE.txt file distributed with this work for additional
 // information regarding copyright ownership.
 //
@@ -35,7 +35,7 @@ class DefaultSource
    * Creates a new relation for data store in sas7bdat given parameters.
    * Parameters have to include 'path'
    */
-  override def createRelation(sqlContext: SQLContext, parameters: Map[String, String]) = {
+  override def createRelation(sqlContext: SQLContext, parameters: Map[String, String]): SasRelation = {
     createRelation(sqlContext, parameters, null)
   }
 
@@ -46,7 +46,7 @@ class DefaultSource
   override def createRelation(
                                sqlContext: SQLContext,
                                parameters: Map[String, String],
-                               schema: StructType) = {
+                               schema: StructType): SasRelation = {
     SasRelation(checkPath(parameters), schema)(sqlContext)
   }
 }
