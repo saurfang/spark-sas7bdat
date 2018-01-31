@@ -79,8 +79,6 @@ class SasFileParserWrapper(val sasFileParser: SasFileParser) {
 
   def readNext(): Array[Object] = sasFileReaderPrivateExposer('readNext)().asInstanceOf[Array[Object]]
 
-  def recordValue: Array[Object] = sasFileReaderPrivateExposer('readNext)().asInstanceOf[Array[Object]]
-
   def currentPageType: Int = sasFileReaderPrivateExposer.get[Int]('currentPageType)
 
   def currentPageDataSubheaderPointers: java.util.List[_] = sasFileReaderPrivateExposer.
