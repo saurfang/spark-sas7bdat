@@ -1,4 +1,4 @@
-// Copyright (C) 2011-2012 the original author or authors.
+// Copyright (C) 2015 Forest Fang.
 // See the LICENCE.txt file distributed with this work for additional
 // information regarding copyright ownership.
 //

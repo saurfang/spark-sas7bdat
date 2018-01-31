@@ -1,4 +1,4 @@
-// Copyright (C) 2011-2012 the original author or authors.
+// Copyright (C) 2015 Forest Fang.
 // See the LICENCE.txt file distributed with this work for additional
 // information regarding copyright ownership.
 //
@@ -27,7 +27,7 @@ import org.apache.hadoop.fs.Path
 import org.apache.hadoop.io.NullWritable
 import org.apache.hadoop.mapred.{FileInputFormat, JobConf}
 import org.apache.log4j.LogManager
-import org.apache.spark.rdd.HadoopRDD
+import org.apache.spark.rdd.{HadoopRDD, RDD}
 import org.apache.spark.sql.SQLContext
 import org.apache.spark.sql.sources.{BaseRelation, TableScan}
 import org.apache.spark.sql.Row
@@ -50,7 +50,7 @@ case class SasRelation protected[spark](
   val schema = inferSchema()
 
   // By making this a lazy val we keep the RDD around, amortizing the cost of locating splits.
-  def buildScan() = {
+  def buildScan(): RDD[Row] = {
     FileInputFormat.setInputPaths(conf, new Path(location))
     val baseRDD = new HadoopRDD[NullWritable, Array[Object]](
       sqlContext.sparkContext,
@@ -118,12 +118,13 @@ case class SasRelation protected[spark](
       val schemaFields = sasFileReader.getColumns.map { column =>
         val columnType =
           if (column.getType == classOf[Number]) {
-            if (ParsoWrapper.DATE_TIME_FORMAT_STRINGS.contains(column.getFormat))
+            if (ParsoWrapper.DATE_TIME_FORMAT_STRINGS.contains(column.getFormat)) {
               TimestampType
-            else if (ParsoWrapper.DATE_FORMAT_STRINGS.contains(column.getFormat))
+            } else if (ParsoWrapper.DATE_FORMAT_STRINGS.contains(column.getFormat)) {
               DateType
-            else
+            } else {
               DoubleType
+            }
           } else {
             StringType
           }

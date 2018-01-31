@@ -1,4 +1,4 @@
-// Copyright (C) 2011-2012 the original author or authors.
+// Copyright (C) 2015 Forest Fang.
 // See the LICENCE.txt file distributed with this work for additional
 // information regarding copyright ownership.
 //
@@ -19,8 +19,8 @@ package com.github.saurfang.sas.util
 class PrivateMethodCaller(x: AnyRef, methodName: String) {
   def apply(_args: Any*): Any = {
     val args = _args.map(_.asInstanceOf[AnyRef])
-    def _parents: Stream[Class[_]] = Stream(x.getClass) #::: _parents.map(_.getSuperclass)
-    val parents = _parents.takeWhile(_ != null).toList
+    def collectParents: Stream[Class[_]] = Stream(x.getClass) #::: collectParents.map(_.getSuperclass)
+    val parents = collectParents.takeWhile(_ != null).toList
     val methods = parents.flatMap(_.getDeclaredMethods)
     val method = methods.find(_.getName == methodName).getOrElse(throw new IllegalArgumentException("Method " + methodName + " not found"))
     method.setAccessible(true)
@@ -39,8 +39,8 @@ case class PrivateMethodExposer(x: AnyRef) {
   def apply(method: scala.Symbol): PrivateMethodCaller = new PrivateMethodCaller(x, method.name)
 
   def get[T](member: scala.Symbol): T = {
-    def _parents: Stream[Class[_]] = Stream(x.getClass) #::: _parents.map(_.getSuperclass)
-    val parents = _parents.takeWhile(_ != null).toList
+    def collectParents: Stream[Class[_]] = Stream(x.getClass) #::: collectParents.map(_.getSuperclass)
+    val parents = collectParents.takeWhile(_ != null).toList
     val fields = parents.flatMap(_.getDeclaredFields)
     val field = fields.find(_.getName == member.name).getOrElse(throw new IllegalArgumentException("Field " + member.name + " not found"))
     field.setAccessible(true)
