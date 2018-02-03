@@ -100,7 +100,7 @@ cluster, you can always run it in local mode and take advantage of multi-core.
 For further flexibility, you can use `spark-shell`:
 
 ```bash
-spark-shell --master local[4] --packages saurfang:spark-sas7bdat:1.1.5-s_2.11
+spark-shell --master local[4] --packages saurfang:spark-sas7bdat:2.0.0-s_2.11
 ```
 
 In the shell you can do data analysis like:
