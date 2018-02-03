@@ -8,7 +8,7 @@
  </check>
  <check level="warning" class="org.scalastyle.file.HeaderMatchesChecker" enabled="true">
   <parameters>
-   <parameter name="header"><![CDATA[// Copyright (C) 2011-2012 the original author or authors.
+   <parameter name="header"><![CDATA[// Copyright (C) 2015 Forest Fang.
 // See the LICENCE.txt file distributed with this work for additional
 // information regarding copyright ownership.
 //
@@ -68,7 +68,7 @@
  <check level="warning" class="org.scalastyle.scalariform.NoWhitespaceBeforeLeftBracketChecker" enabled="true"></check>
  <check level="warning" class="org.scalastyle.scalariform.NoWhitespaceAfterLeftBracketChecker" enabled="true"></check>
  <check level="warning" class="org.scalastyle.scalariform.ReturnChecker" enabled="true"></check>
- <check level="warning" class="org.scalastyle.scalariform.NullChecker" enabled="true"></check>
+ <check level="warning" class="org.scalastyle.scalariform.NullChecker" enabled="false"></check>
  <check level="warning" class="org.scalastyle.scalariform.NoCloneChecker" enabled="true"></check>
  <check level="warning" class="org.scalastyle.scalariform.NoFinalizeChecker" enabled="true"></check>
  <check level="warning" class="org.scalastyle.scalariform.CovariantEqualsChecker" enabled="true"></check>

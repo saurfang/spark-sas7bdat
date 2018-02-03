@@ -8,8 +8,6 @@ This library is inspired by [spark-csv](https://github.com/databricks/spark-csv)
 currently uses [parso](https://github.com/epam/parso/) for parsing as it is the only public available parser
 that handles both forms of SAS compression (CHAR and BINARY). 
 
-Note *parso* is licensed under GPL-3 and subsequently this library is also licensed as such. Parso library is currently under process of migrating over to Apache 2.0 license (see https://github.com/epam/parso/issues/19 for details).
-
 [![Build Status](https://travis-ci.org/saurfang/spark-sas7bdat.svg?branch=master)](https://travis-ci.org/saurfang/spark-sas7bdat)
 
 ## Requirements
@@ -126,6 +124,6 @@ null is properly recorded. See https://github.com/databricks/spark-csv/pull/147 
 ## Related Work
 
 * [spark-csv](https://github.com/databricks/spark-csv)
-* [parso](http://scitouch.net/opensource/parso)
+* [parso](https://github.com/epam/parso)
 * [ReadStat](https://github.com/WizardMac/ReadStat)
 * [SAS7BDAT Database Binary Format](http://www2.uaem.mx/r-mirror/web/packages/sas7bdat/vignettes/sas7bdat.pdf)

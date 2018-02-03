@@ -1,6 +1,11 @@
+## 2.0.0
+
+- __Changed__: Upgrade Parso to 2.0.8. (Thanks @mulya, @Tagar, @printsev)
+- __Changed__: Package is now licensed under Apache License 2.0.
+
 ## 1.1.5
 
-- __Changed__: Package now compiles against 2.0.1. (Thanks @chappers)
+- __Changed__: Package now compiles against Spark 2.0.1. (Thanks @chappers)
 
 ## 1.1.4
 
