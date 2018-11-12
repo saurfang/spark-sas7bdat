@@ -128,7 +128,7 @@ case class SasRelation protected[spark](
           } else {
             StringType
           }
-        StructField(column.getName, columnType, nullable = true)
+        StructField(column.getName, columnType, nullable = true).withComment(column.getLabel)
       }
       inputStream.close()
       StructType(schemaFields)
