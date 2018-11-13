@@ -27,8 +27,8 @@ import org.apache.hadoop.mapred.{FileSplit, InputSplit, RecordReader}
 import org.apache.log4j.LogManager
 
 /**
- * An [[RecordReader]] for [[SasInputFormat]]. Each split is aligned to page sized specified in the .sas7bdat meta info.
- * Each split looks back previous split if the start of split is incomplete.
+ * An [[RecordReader]] for [[SasInputFormat]].
+ * Each split is aligned to the closest preceding page boundary, calculated from the page size specified in the .sas7bdat meta info.
  */
 class SasRecordReader(job: Configuration, split: InputSplit) extends RecordReader[NullWritable, Array[Object]] {
   
@@ -68,7 +68,6 @@ class SasRecordReader(job: Configuration, split: InputSplit) extends RecordReade
   private val fileLength: Long = fs.getFileStatus(filePath).getLen()
   private val headerLength: Long = sasFileReader.getSasFileProperties.getHeaderLength
   private val pageLength: Long = sasFileReader.getSasFileProperties.getPageLength
-  private val pageCount: Long = sasFileReader.getSasFileProperties.getPageCount
   
   
   //// Align splits to page boundaries.
@@ -100,8 +99,7 @@ class SasRecordReader(job: Configuration, split: InputSplit) extends RecordReade
     }
   }
   
-  // Seek input stream 
-  // (Don't seek if this is the first split, as it has already read past metadata) 
+  // Seek input stream (Don't seek if this is the first split, as it has already read past metadata) 
   val origStreamPos: Long = fileInputStream.getPos()
   if (origStreamPos != splitStart && splitStart != 0) {
     
