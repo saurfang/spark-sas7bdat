@@ -69,7 +69,6 @@ class SasRecordReader(job: Configuration, split: InputSplit) extends RecordReade
   private val headerLength: Long = sasFileReader.getSasFileProperties.getHeaderLength
   private val pageLength: Long = sasFileReader.getSasFileProperties.getPageLength
   private val pageCount: Long = sasFileReader.getSasFileProperties.getPageCount
-  private val lastPageEndOffset: Long = headerLength + pageCount * pageLength
   
   
   //// Align splits to page boundaries.
