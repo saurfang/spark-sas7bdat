@@ -81,7 +81,7 @@ case class SasRelation protected[spark](
             rowArray(index) = records(index) match {
               //SAS itself only has double as its numeric type.
               //Hence we can't infer Long/Integer type ahead of time therefore we convert it back to Double
-			  case x: java.lang.Long => x.toDouble
+              case x: java.lang.Long => x.toDouble
               case x: java.util.Date =>
                 schemaFields(index).dataType match {
                   case TimestampType => new java.sql.Timestamp(x.getTime)
