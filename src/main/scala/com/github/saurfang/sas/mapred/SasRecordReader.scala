@@ -31,127 +31,156 @@ import org.apache.log4j.LogManager
  * Each split looks back previous split if the start of split is incomplete.
  */
 class SasRecordReader(job: Configuration, split: InputSplit) extends RecordReader[NullWritable, Array[Object]] {
-
+  
+  @transient lazy val log = LogManager.getLogger(this.getClass.getName)
+    
+  //// Warm-ups 
+  // Process InputSplit
+  private val fileSplit = split.asInstanceOf[FileSplit]
+  private val filePath = fileSplit.getPath
+  
+  // Sanity Check: Ensure file is not compressed.
+  private val codec = new CompressionCodecFactory(job).getCodec(filePath)
+  if (codec != null) {
+    throw new IOException("SASRecordReader does not support reading compressed files.")
+  }
+  
+  
+  //// Initialize
+  // Variables
   private var recordCount: Int = 0
-  private var splitStart: Long = 0L
-  private var splitEnd: Long = 0L
   private var lastPageBlockCounter: Int = 0
   private var recordValue: Array[Object] = _
+  
+  // Start/End byte positions for this split
+  private var splitStart: Long = fileSplit.getStart
+  private var splitEnd: Long = splitStart + fileSplit.getLength
 
-  @transient lazy val log = LogManager.getLogger(this.getClass.getName)
-
-  // the file input
-  private val fileSplit = split.asInstanceOf[FileSplit]
-
-  // the byte position this fileSplit starts at
-  splitStart = fileSplit.getStart
-
-  // splitEnd byte marker that the fileSplit ends at
-  splitEnd = splitStart + fileSplit.getLength
-
-  // the actual file we will be reading from
-  private val file = fileSplit.getPath
-  // check compression
-  private val codec = new CompressionCodecFactory(job).getCodec(file)
-  if (codec != null) {
-    throw new IOException("SASRecordReader does not support reading compressed files")
-  }
-  // get the filesystem
-  private val fs = file.getFileSystem(job)
-  // open the File
-  private val fileInputStream = fs.open(file)
+  // Initialize CountingInputStream
+  private val fs = filePath.getFileSystem(job)
+  private val fileInputStream = fs.open(filePath)
   private val countingInputStream = new CountingInputStream(fileInputStream)
-  // open SAS file reader to read meta data
+
+  // Initialize parso SasFileParser
   private val sasFileReader = ParsoWrapper.createSasFileParser(countingInputStream)
-
-  log.info(sasFileReader.getSasFileProperties.toString)
-
-  private val maxPagePosition: Long = sasFileReader.getSasFileProperties.getHeaderLength +
-    sasFileReader.getSasFileProperties.getPageCount * sasFileReader.getSasFileProperties.getPageLength
-
-  // align splitEnd to pages
-  // only shrink splitEnd if this is the first split or the split starts after meta data
-  private val partialPageLength = getPartialPageLength(splitEnd)
-  if (partialPageLength != 0) {
-    splitEnd -= partialPageLength
-    log.info(s"Shrunk $partialPageLength bytes.")
-  }
-
-  // align splitStart to pages and seek (only if this block is after meta/mix page)
+  
+  // Extract Static SAS-File Metadata
+  private val fileLength: Long = fs.getFileStatus(filePath).getLen()
+  private val headerLength: Long = sasFileReader.getSasFileProperties.getHeaderLength
+  private val pageLength: Long = sasFileReader.getSasFileProperties.getPageLength
+  private val pageCount: Long = sasFileReader.getSasFileProperties.getPageCount
+  private val lastPageEndOffset: Long = headerLength + pageCount * pageLength
+  
+  
+  //// Align splits to page boundaries.
+  // Expand splitStart to closest preceding page end.
   if (splitStart > 0) {
-    val extraPageLength = sasFileReader.getSasFileProperties.getPageLength - getPartialPageLength(splitStart)
-    splitStart -= extraPageLength
-    if (extraPageLength != 0) {
-      log.info(s"Looked back $extraPageLength bytes.")
+    
+    // Calculate how many extra bytes we need to include, so we start on a page boundary.
+    val partialPageLength = (splitStart - headerLength) % pageLength
+    
+    // Move splitStart back to include these bytes.
+    splitStart -= partialPageLength
+    
+    if (partialPageLength != 0) {
+      log.info(s"Expanded splitStart by $partialPageLength bytes to start on page boundary, splitStart is now: $splitStart.")
     }
-
+  } 
+  
+  // Shrink splitEnd to closest preceding page end. (Don't move last split, it should end on file end.)
+  if (splitEnd != fileLength) {
+    
+    // Calculate how many bytes we need to exclude, so we end on a page boundary.
+    val partialPageLength = (splitEnd - headerLength) % pageLength
+    
+    // Move splitEnd back to exclude these bytes.
+    splitEnd -= partialPageLength
+    
+    if (partialPageLength != 0) { 
+      log.info(s"Shrunk splitEnd by $partialPageLength bytes to end on page boundary, splitEnd is now: $splitEnd.") 
+    }
+  }
+  
+  // Seek input stream 
+  // (Don't seek if this is the first split, as it has already read past metadata) 
+  val origStreamPos: Long = fileInputStream.getPos()
+  if (origStreamPos != splitStart && splitStart != 0) {
+    
+    // Shift fileInputStream to start of split.
     fileInputStream.seek(splitStart)
-    log.info(s"Skipped $splitStart bytes.")
-    //reset progress
+    log.info(s"Shifted fileInputStream to $splitStart offset from $origStreamPos.")
+    
+    // Reset Byte Counter
     countingInputStream.resetByteCount()
-    //if we seek then we need to look at the current page
-    //this is safe because [[currentRowOnPageIndex]] should be zero at this point
+    
+    // If we seek then we need to look at the current page.
+    // this is safe because we seeked to a page boundary.
     sasFileReader.readNextPage()
   }
-
+  
+  
+  //// Override RecordReader Methods
+  // createKey()
+  override def createKey: NullWritable = {
+    NullWritable.get
+  }
+  
+  // createValue()
+  override def createValue: Array[Object] = {
+    new Array[Object](sasFileReader.getSasFileProperties.getColumnsCount.toInt)
+  }
+  
+  // getPos()
+  override def getPos: Long = {
+    countingInputStream.getByteCount
+  }
+  
+  // close()
   override def close() {
-    log.info(s"Read $getPos bytes and $recordCount records ($lastPageBlockCounter/${sasFileReader.currentPageBlockCount} on last page).")
+    log.info(s"Read $getPos bytes and $recordCount records.")
     if (countingInputStream != null) {
       countingInputStream.close()
     }
   }
-
-  override def createKey: NullWritable = {
-    NullWritable.get
-  }
-
-  override def createValue: Array[Object] = {
-    new Array[Object](sasFileReader.getSasFileProperties.getColumnsCount.toInt)
-  }
-
+  
+  // getProgress()
   override def getProgress: Float = {
     splitStart match {
-      case x if x == splitEnd => 0.0.toFloat
+      case x if x == splitEnd => 0.0F
       case _ => Math.min(
         (getPos / (splitEnd - splitStart)).toFloat, 1.0
       ).toFloat
     }
   }
-
-  private def getPartialPageLength(pos: Long) = (pos - sasFileReader.getSasFileProperties.getHeaderLength) % sasFileReader.getSasFileProperties.getPageLength
-
+  
+  // next()
   override def next(key: NullWritable, value: Array[Object]): Boolean = {
+  
+    // Lazy evaluator to read next record.
     lazy val readNext = {
-      val recordValue = sasFileReader.readNext()
-      if (recordValue == null) {
-        false
-      } else {
-        recordValue.copyToArray(value)
+      
+      // Read next row.
+      val recordValue: Option[Array[Object]] = Option(sasFileReader.readNext(null))
+      
+      // Store the returned row in the provided value object.
+      if (!recordValue.isEmpty) {
+        recordValue.get.copyToArray(value)
         recordCount += 1
         true
-      }
-    }
-
-    // read a record if the currentPosition is less than the split end
-    if (getPos < splitEnd - splitStart) {
-      readNext
-    } else if (
-    // be especially careful about last page
-      splitStart + getPos >= maxPagePosition &&
-        // but don't get stuck on end of the file
-        !(sasFileReader.currentPageType == ParsoWrapper.PAGE_META_TYPE &&
-          sasFileReader.currentPageDataSubheaderPointers.isEmpty)
-    ) {
-      if (lastPageBlockCounter < sasFileReader.currentPageBlockCount) {
-        lastPageBlockCounter += 1
-        readNext
-      } else {
+      } 
+      else {
         false
       }
-    } else {
+    }
+    
+    // If there is more to read, read a row.
+    if (getPos <= splitEnd - splitStart) {
+      readNext
+    }
+    else {
       false
     }
+  
   }
-
-  override def getPos: Long = countingInputStream.getByteCount
+  
 }

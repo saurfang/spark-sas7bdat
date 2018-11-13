@@ -18,6 +18,7 @@ package com.github.saurfang.sas.parso
 
 import java.io.InputStream
 import java.util
+import java.util.ArrayList
 
 import com.epam.parso.SasFileProperties
 import com.epam.parso.impl.SasFileParser
@@ -41,12 +42,7 @@ object ParsoWrapper {
 
   private val sasFileConstantsClass = Class.forName("com.epam.parso.impl.SasFileConstants")
 
-  lazy val PAGE_META_TYPE: Int = {
-    val field = sasFileConstantsClass.getDeclaredField("PAGE_META_TYPE")
-    field.setAccessible(true)
-    field.getInt(null)
-  }
-
+  
   lazy val DATE_TIME_FORMAT_STRINGS: util.Set[String] = {
     val field = sasFileConstantsClass.getDeclaredField("DATE_TIME_FORMAT_STRINGS")
     field.setAccessible(true)
@@ -72,16 +68,9 @@ class SasFileParserWrapper(val sasFileParser: SasFileParser) {
   private[this] val sasFileReaderPrivateExposer = PrivateMethodExposer(sasFileParser)
 
   def getSasFileProperties: SasFileProperties = sasFileReaderPrivateExposer('getSasFileProperties)().asInstanceOf[SasFileProperties]
-
-  def currentPageBlockCount: Int = sasFileReaderPrivateExposer.get[Int]('currentPageBlockCount)
-
+  
   def readNextPage(): Unit = sasFileReaderPrivateExposer('readNextPage)()
 
-  def readNext(): Array[Object] = sasFileReaderPrivateExposer('readNext)().asInstanceOf[Array[Object]]
-
-  def currentPageType: Int = sasFileReaderPrivateExposer.get[Int]('currentPageType)
-
-  def currentPageDataSubheaderPointers: java.util.List[_] = sasFileReaderPrivateExposer.
-    get[java.util.List[_]]('currentPageDataSubheaderPointers)
+  def readNext(columnNames: ArrayList[String]): Array[Object] = sasFileReaderPrivateExposer('readNext)(columnNames).asInstanceOf[Array[Object]]
 }
 

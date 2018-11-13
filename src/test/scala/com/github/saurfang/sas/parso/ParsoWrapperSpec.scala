@@ -22,6 +22,5 @@ class ParsoWrapperSpec extends FlatSpec with Matchers {
     ParsoWrapper.DATE_TIME_FORMAT_STRINGS should not be empty
 
     noException should be thrownBy ParsoWrapper.EPSILON
-    noException should be thrownBy ParsoWrapper.PAGE_META_TYPE
   }
 }

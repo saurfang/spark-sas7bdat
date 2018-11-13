@@ -36,18 +36,19 @@ import org.apache.spark.sql.types._
 import scala.util.control.NonFatal
 
 /**
- * Defines a RDD that is backed by [[SasInputFormat]]. Data are coerced into approriate types according to
+ * Defines a RDD that is backed by [[SasInputFormat]]. Data are coerced into appropriate types according to
  * meta information embedded in .sas7bdat file.
  */
 case class SasRelation protected[spark](
                                          location: String,
                                          userSchema: StructType = null,
-                                         @transient conf: JobConf = new JobConf(),
-                                         minPartitions: Int = 0
+                                         forceLowerCaseColumnNames: Boolean = false,
+                                         minPartitions: Int = 0,
+                                         @transient conf: JobConf = new JobConf()
                                          )(@transient val sqlContext: SQLContext)
   extends BaseRelation with TableScan {
   @transient lazy val log = LogManager.getLogger(this.getClass.getName)
-  val schema = inferSchema()
+  val schema = inferSchema(forceLowerCaseColumnNames)
 
   // By making this a lazy val we keep the RDD around, amortizing the cost of locating splits.
   def buildScan(): RDD[Row] = {
@@ -64,9 +65,7 @@ case class SasRelation protected[spark](
     baseRDD.mapPartitions { iter => parseSAS(iter, schema.fields) }
   }
 
-  private def parseSAS(
-                        iter: Iterator[Array[Object]],
-                        schemaFields: Seq[StructField]): Iterator[Row] = {
+  private def parseSAS(iter: Iterator[Array[Object]], schemaFields: Seq[StructField]): Iterator[Row] = {
     iter.flatMap { records =>
       var index: Int = 0
       val rowArray = new Array[Any](schemaFields.length)
@@ -82,7 +81,7 @@ case class SasRelation protected[spark](
             rowArray(index) = records(index) match {
               //SAS itself only has double as its numeric type.
               //Hence we can't infer Long/Integer type ahead of time therefore we convert it back to Double
-              case x: java.lang.Long => x.toDouble
+			  case x: java.lang.Long => x.toDouble
               case x: java.util.Date =>
                 schemaFields(index).dataType match {
                   case TimestampType => new java.sql.Timestamp(x.getTime)
@@ -106,7 +105,7 @@ case class SasRelation protected[spark](
     }
   }
 
-  private def inferSchema(): StructType = {
+  private def inferSchema(forceLowerCaseColumnNames: Boolean): StructType = {
     if (this.userSchema != null) {
       userSchema
     } else {
@@ -118,9 +117,9 @@ case class SasRelation protected[spark](
       val schemaFields = sasFileReader.getColumns.map { column =>
         val columnType =
           if (column.getType == classOf[Number]) {
-            if (ParsoWrapper.DATE_TIME_FORMAT_STRINGS.contains(column.getFormat)) {
+            if (ParsoWrapper.DATE_TIME_FORMAT_STRINGS.contains(column.getFormat.getName)) {
               TimestampType
-            } else if (ParsoWrapper.DATE_FORMAT_STRINGS.contains(column.getFormat)) {
+            } else if (ParsoWrapper.DATE_FORMAT_STRINGS.contains(column.getFormat.getName)) {
               DateType
             } else {
               DoubleType
@@ -128,7 +127,12 @@ case class SasRelation protected[spark](
           } else {
             StringType
           }
-        StructField(column.getName, columnType, nullable = true).withComment(column.getLabel)
+       
+        if (forceLowerCaseColumnNames) {
+          StructField(column.getName.toLowerCase(), columnType, nullable = true).withComment(column.getLabel)
+        } else {
+          StructField(column.getName, columnType, nullable = true).withComment(column.getLabel)
+        }
       }
       inputStream.close()
       StructType(schemaFields)

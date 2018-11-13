@@ -47,6 +47,24 @@ class DefaultSource
                                sqlContext: SQLContext,
                                parameters: Map[String, String],
                                schema: StructType): SasRelation = {
-    SasRelation(checkPath(parameters), schema)(sqlContext)
+    val path = checkPath(parameters)
+    
+    val forceLowerCaseColumnNames = parameters.getOrElse("forceLowerCaseColumnNames", "false")
+    val forceLowerCaseColumnNamesFlag = if (forceLowerCaseColumnNames == "false") {
+      false
+    } else if (forceLowerCaseColumnNames == "true") {
+      true
+    } else {
+      throw new Exception("forceLowerCaseColumnNames can only be true or false")
+    }
+    
+    val minPartitionsStr = parameters.getOrElse("minPartitionsStr", "0")
+    val minPartitions = try {
+      minPartitionsStr.toInt
+    } catch {
+      case e: Exception => throw new Exception("minPartitions must be a valid integer")
+    }
+    
+    SasRelation(path, schema, forceLowerCaseColumnNamesFlag, minPartitions)(sqlContext)
   }
 }
