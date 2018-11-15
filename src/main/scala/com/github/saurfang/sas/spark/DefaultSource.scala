@@ -1,4 +1,4 @@
-// Copyright (C) 2015 Forest Fang.
+// Copyright (C) 2018 Forest Fang.
 // See the LICENCE.txt file distributed with this work for additional
 // information regarding copyright ownership.
 //
@@ -50,21 +50,43 @@ class DefaultSource
     val path = checkPath(parameters)
     
     val forceLowerCaseColumnNames = parameters.getOrElse("forceLowerCaseColumnNames", "false")
-    val forceLowerCaseColumnNamesFlag = if (forceLowerCaseColumnNames == "false") {
-      false
-    } else if (forceLowerCaseColumnNames == "true") {
-      true
-    } else {
-      throw new Exception("forceLowerCaseColumnNames can only be true or false")
-    }
+    val forceLowerCaseColumnNamesFlag = 
+      if (forceLowerCaseColumnNames == "false") {
+        false
+      } else if (forceLowerCaseColumnNames == "true") {
+        true
+      } else {
+        throw new Exception("forceLowerCaseColumnNames can only be true or false")
+      }
+    
+    val readColLabelAsComment = parameters.getOrElse("readColLabelAsComment", "false")
+    val readColLabelAsCommentFlag = 
+      if (readColLabelAsComment == "false") {
+        false
+      } else if (readColLabelAsComment == "true") {
+        true
+      } else {
+        throw new Exception("readColLabelAsComment can only be true or false")
+      }
+    
+    val readFormattedColsAsDecimal = parameters.getOrElse("readFormattedColsAsDecimal", "false")
+    val readFormattedColsAsDecimalFlag = 
+      if (readFormattedColsAsDecimal == "false") {
+        false
+      } else if (readFormattedColsAsDecimal == "true") {
+        true
+      } else {
+        throw new Exception("readFormattedColsAsDecimal can only be true or false")
+      }
     
     val minPartitionsStr = parameters.getOrElse("minPartitionsStr", "0")
-    val minPartitions = try {
-      minPartitionsStr.toInt
-    } catch {
-      case e: Exception => throw new Exception("minPartitions must be a valid integer")
-    }
+    val minPartitions = 
+      try {
+        minPartitionsStr.toInt
+      } catch {
+        case e: Exception => throw new Exception("minPartitions must be a valid integer")
+      }
     
-    SasRelation(path, schema, forceLowerCaseColumnNamesFlag, minPartitions)(sqlContext)
+    SasRelation(path, schema, forceLowerCaseColumnNamesFlag, readColLabelAsCommentFlag, readFormattedColsAsDecimalFlag, minPartitions)(sqlContext)
   }
 }

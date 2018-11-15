@@ -1,4 +1,4 @@
-// Copyright (C) 2015 Forest Fang.
+// Copyright (C) 2018 Forest Fang.
 // See the LICENCE.txt file distributed with this work for additional
 // information regarding copyright ownership.
 //
@@ -22,26 +22,35 @@ import java.util.ArrayList
 
 import com.epam.parso.SasFileProperties
 import com.epam.parso.impl.SasFileParser
+
 import com.github.saurfang.sas.util.PrivateMethodExposer
 
+/**
+ * An object to expose private methods from com.epam.parso.impl.SasFileParser and com.epam.parso.impl.SasFileConstants.
+ */
 object ParsoWrapper {
 
-  def createSasFileParser(is: InputStream): SasFileParserWrapper = {
+  // Define a method to build a SasFileParserWrapper
+  def createSasFileParser(inputStream: InputStream): SasFileParserWrapper = {
+    
+    // Get an instance of SasFileParser.Builder
     val builderClass = Class.forName("com.epam.parso.impl.SasFileParser$Builder")
     val builderConstructor = builderClass.getDeclaredConstructors()(0)
     builderConstructor.setAccessible(true)
     val builderInstance = builderConstructor.newInstance()
-
+    
+    // Get a private method exposer for the builder.
     val builderExposer = PrivateMethodExposer(builderInstance.asInstanceOf[AnyRef])
-
-    builderExposer('sasFileStream)(is)
+    
+    // Build a sasFileParser from our input stream
+    builderExposer('sasFileStream)(inputStream)
     val sasFileParser = builderExposer('build)()
-
+    
     new SasFileParserWrapper(sasFileParser.asInstanceOf[SasFileParser])
   }
 
+  // Read SAS file metadata constants specified by parso.
   private val sasFileConstantsClass = Class.forName("com.epam.parso.impl.SasFileConstants")
-
   
   lazy val DATE_TIME_FORMAT_STRINGS: util.Set[String] = {
     val field = sasFileConstantsClass.getDeclaredField("DATE_TIME_FORMAT_STRINGS")
@@ -60,17 +69,25 @@ object ParsoWrapper {
     field.setAccessible(true)
     field.getDouble(null)
   }
-
 }
 
 class SasFileParserWrapper(val sasFileParser: SasFileParser) {
 
-  private[this] val sasFileReaderPrivateExposer = PrivateMethodExposer(sasFileParser)
+  private[this] val sasFileParserPrivateExposer = PrivateMethodExposer(sasFileParser)
 
-  def getSasFileProperties: SasFileProperties = sasFileReaderPrivateExposer('getSasFileProperties)().asInstanceOf[SasFileProperties]
+  // Expose getSasFileProperties() 
+  def getSasFileProperties(): SasFileProperties = {
+    sasFileParserPrivateExposer('getSasFileProperties)().asInstanceOf[SasFileProperties]
+  }
   
-  def readNextPage(): Unit = sasFileReaderPrivateExposer('readNextPage)()
-
-  def readNext(columnNames: ArrayList[String]): Array[Object] = sasFileReaderPrivateExposer('readNext)(columnNames).asInstanceOf[Array[Object]]
+  // Expose readNext()
+  def readNext(): Array[Object] = {
+    sasFileParserPrivateExposer('readNext)(null).asInstanceOf[Array[Object]]
+  }
+  
+  // Expose readNextPage()
+  def readNextPage(): Unit = {
+    sasFileParserPrivateExposer('readNextPage)()
+  }
 }
 

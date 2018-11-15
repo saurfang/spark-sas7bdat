@@ -1,4 +1,4 @@
-// Copyright (C) 2015 Forest Fang.
+// Copyright (C) 2018 Forest Fang.
 // See the LICENCE.txt file distributed with this work for additional
 // information regarding copyright ownership.
 //
@@ -16,23 +16,28 @@
 
 package com.github.saurfang.sas.spark
 
-import java.text.SimpleDateFormat
-import java.util.TimeZone
+import java.io.IOException
 
-import com.epam.parso.impl.{SasFileConstants, SasFileReaderImpl}
-import com.epam.parso.SasFileReader
+import com.epam.parso.ColumnFormat
+import com.epam.parso.impl.SasFileReaderImpl
+
 import com.github.saurfang.sas.mapred.SasInputFormat
 import com.github.saurfang.sas.parso.ParsoWrapper
+
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.io.NullWritable
 import org.apache.hadoop.mapred.{FileInputFormat, JobConf}
+
 import org.apache.log4j.LogManager
-import org.apache.spark.rdd.{HadoopRDD, RDD}
+
+import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.SQLContext
 import org.apache.spark.sql.sources.{BaseRelation, TableScan}
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.types._
 
+
+import scala.collection.JavaConversions._
 import scala.util.control.NonFatal
 
 /**
@@ -43,96 +48,166 @@ case class SasRelation protected[spark](
                                          location: String,
                                          userSchema: StructType = null,
                                          forceLowerCaseColumnNames: Boolean = false,
-                                         minPartitions: Int = 0,
-                                         @transient conf: JobConf = new JobConf()
+                                         readColLabelAsComment: Boolean = false,
+                                         readFormattedColsAsDecimal: Boolean = false,
+                                         minPartitions: Int = 0
                                          )(@transient val sqlContext: SQLContext)
   extends BaseRelation with TableScan {
+    
   @transient lazy val log = LogManager.getLogger(this.getClass.getName)
-  val schema = inferSchema(forceLowerCaseColumnNames)
+  
+  // Automatically extract schema from file.
+  val schema = inferSchema(
+    forceLowerCaseColumnNames,
+    readColLabelAsComment,
+    readFormattedColsAsDecimal
+  )
 
-  // By making this a lazy val we keep the RDD around, amortizing the cost of locating splits.
-  def buildScan(): RDD[Row] = {
-    FileInputFormat.setInputPaths(conf, new Path(location))
-    val baseRDD = new HadoopRDD[NullWritable, Array[Object]](
-      sqlContext.sparkContext,
-      conf,
-      classOf[SasInputFormat],
-      classOf[NullWritable],
-      classOf[Array[Object]],
-      minPartitions
-    ).map(_._2)
+  override def buildScan: RDD[Row] = {
+    
+    // Read an RDD with NullWritable keys, Array[Object] values, with SasInputFormat format.
+    // Then use map to extract every value from the returned RDD of (key, value) tuples.   
+    val baseRDD: RDD[Array[Object]] = 
+      sqlContext.sparkContext.hadoopFile(
+        location, 
+        classOf[SasInputFormat], 
+        classOf[NullWritable],
+        classOf[Array[Object]], 
+        minPartitions).map(_._2)
 
-    baseRDD.mapPartitions { iter => parseSAS(iter, schema.fields) }
+    // Convert our RDD[Array[Object]] into RDD[Row]
+    baseRDD.mapPartitions {recordIterator => parseSAS(recordIterator, schema.fields)}
   }
 
-  private def parseSAS(iter: Iterator[Array[Object]], schemaFields: Seq[StructField]): Iterator[Row] = {
-    iter.flatMap { records =>
+  private def parseSAS(recordIterator: Iterator[Array[Object]], schemaFields: Seq[StructField]): Iterator[Row] = {
+    
+    recordIterator.map { recordArray =>
+    
       var index: Int = 0
       val rowArray = new Array[Any](schemaFields.length)
 
       try {
-        if (records.isEmpty) {
-          log.warn(s"Ignoring empty line: $records")
-          None
-        } else {
-          index = 0
-
-          while (index < schemaFields.length) {
-            rowArray(index) = records(index) match {
-              //SAS itself only has double as its numeric type.
-              //Hence we can't infer Long/Integer type ahead of time therefore we convert it back to Double
-              case x: java.lang.Long => x.toDouble
-              case x: java.util.Date =>
-                schemaFields(index).dataType match {
-                  case TimestampType => new java.sql.Timestamp(x.getTime)
-                  case DateType => new java.sql.Date(x.getTime)
-                }
-              case x => x
+        
+        index = 0
+        
+        while (index < schemaFields.length) {
+          
+          // Conform parso's returned array of {Date, Double, Long, Int, String} into the provided schema.
+          rowArray(index) = recordArray(index) match {
+                                  
+            case x: java.lang.Double => {
+              schemaFields(index).dataType match {
+                case DoubleType => x
+                case DecimalType() => new java.math.BigDecimal(x.toString)
+                case FloatType => x.floatValue
+                case y => throw new IOException(s"Provided schema for column '${schemaFields(index).name}}' does not match the read data. Specified: $y -- Found: $x (of class java.lang.Double)")
+              }
             }
-            index = index + 1
+                        
+            case x: java.lang.Long => {
+              schemaFields(index).dataType match {
+                case LongType => x
+                case DoubleType => x.doubleValue
+                case DecimalType() => new java.math.BigDecimal(x.toString)
+                case IntegerType => x.intValue
+                case ShortType => x.shortValue
+                case y => throw new IOException(s"Provided schema for column '${schemaFields(index).name}}' does not match the read data. Specified: $y -- Found: $x (of class java.lang.Long)")
+              }
+            }
+            
+            case x: java.lang.Integer => {
+              schemaFields(index).dataType match {
+                case IntegerType => x
+                case ShortType => x.shortValue
+                case DoubleType => x.doubleValue
+                case DecimalType() => new java.math.BigDecimal(x.toString)
+                case y => throw new IOException(s"Provided schema for column '${schemaFields(index).name}}' does not match the read data. Specified: $y -- Found: $x (of class java.lang.Integer)")
+              }
+            }
+            
+            case x: java.lang.String => {
+              schemaFields(index).dataType match {
+                case StringType => x
+                case y => throw new IOException(s"Provided schema for column '${schemaFields(index).name}}' does not match the read data. Specified: $y -- Found: $x (of class java.lang.String)")
+              }
+            }
+            
+            case x: java.util.Date => {
+              schemaFields(index).dataType match {
+                case DateType => new java.sql.Date(x.getTime)
+                case TimestampType => new java.sql.Timestamp(x.getTime)
+                case y => throw new IOException(s"Provided schema for column '${schemaFields(index).name}}' does not match the read data. Specified: $y -- Found: $x (of class java.lang.Date)")
+              }
+            }
+            
+            case null => {
+              if (schemaFields(index).nullable) {
+                null
+              } else {
+                throw new IOException(s"Column: '${schemaFields(index).name}' (at index: $index), contains a null value but its schema specified it as non-nullable.")
+              }
+            }
           }
-
-          Some(Row.fromSeq(rowArray))
+          index += 1
         }
-      } catch {
-        case aiob: ArrayIndexOutOfBoundsException =>
-          (index until schemaFields.length).foreach(ind => rowArray(ind) = null)
-          Some(Row.fromSeq(rowArray))
+        Row.fromSeq(rowArray)
+      }
+      catch {
+        // Catch non-fatal errors, and tell the user which record caused it.
         case NonFatal(e) =>
-          log.error(s"Exception while parsing line: ${records.toList}.", e)
-          None
+          throw new IOException(s"Exception while parsing record: ${recordArray.toList}.", e)
       }
     }
   }
 
-  private def inferSchema(forceLowerCaseColumnNames: Boolean): StructType = {
+  private def inferSchema(forceLowerCaseColumnNames: Boolean, readColLabelAsComment: Boolean, readFormattedColsAsDecimal: Boolean): StructType = {
+       
     if (this.userSchema != null) {
       userSchema
     } else {
+      
+      // Open a reader so we can get the metadata.
+      val conf = sqlContext.sparkContext.hadoopConfiguration
       val path = new Path(location)
       val fs = path.getFileSystem(conf)
       val inputStream = fs.open(path)
       val sasFileReader = new SasFileReaderImpl(inputStream)
-      import scala.collection.JavaConversions._
+      
+      // Retrieve some SAS constants.
+      val DATE_FORMAT_STRINGS = ParsoWrapper.DATE_FORMAT_STRINGS
+      val DATE_TIME_FORMAT_STRINGS = ParsoWrapper.DATE_TIME_FORMAT_STRINGS 
+      
+      // Create a buffer of ShemaFields corresponding to the SAS metadata.
       val schemaFields = sasFileReader.getColumns.map { column =>
-        val columnType =
-          if (column.getType == classOf[Number]) {
-            if (ParsoWrapper.DATE_TIME_FORMAT_STRINGS.contains(column.getFormat.getName)) {
+        
+        // Retrieve general info about current column.
+        val columnClass: Class[_] = column.getType
+        val columnName: String = if (forceLowerCaseColumnNames) { column.getName.toLowerCase } else { column.getName }
+        val columnLabel: Option[String] = if (readColLabelAsComment) { Option(column.getLabel) } else { Option(null) }        
+        
+        // Retrieve format info about current column.
+        val columnFormat: ColumnFormat = column.getFormat
+        val columnFormatName: String = columnFormat.getName
+        val columnFormatWidth: Int = columnFormat.getWidth
+        val columnFormatPrecision: Int = columnFormat.getPrecision
+        
+        // Map SAS column types to Spark types.
+        val columnSparkType: DataType = {
+          if (columnClass == classOf[Number]) {
+            if (DATE_TIME_FORMAT_STRINGS.contains(columnFormatName)) {
               TimestampType
-            } else if (ParsoWrapper.DATE_FORMAT_STRINGS.contains(column.getFormat.getName)) {
+            } else if (DATE_FORMAT_STRINGS.contains(columnFormatName)) {
               DateType
+            } else if (readFormattedColsAsDecimal && !columnFormat.isEmpty){
+              DataTypes.createDecimalType(columnFormatWidth, columnFormatPrecision)
             } else {
               DoubleType
-            }
-          } else {
-            StringType
-          }
-       
-        if (forceLowerCaseColumnNames) {
-          StructField(column.getName.toLowerCase(), columnType, nullable = true).withComment(column.getLabel)
-        } else {
-          StructField(column.getName, columnType, nullable = true).withComment(column.getLabel)
+            } 
+          } else { 
+            StringType 
+          }  
         }
+        StructField(columnName, columnSparkType, nullable = true).withComment(columnLabel.getOrElse(""))
       }
       inputStream.close()
       StructType(schemaFields)

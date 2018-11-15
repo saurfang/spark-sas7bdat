@@ -1,4 +1,4 @@
-// Copyright (C) 2015 Forest Fang.
+// Copyright (C) 2018 Forest Fang.
 // See the LICENCE.txt file distributed with this work for additional
 // information regarding copyright ownership.
 //

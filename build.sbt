@@ -1,12 +1,12 @@
 name := "spark-sas7bdat"
-version := "2.0.0"
+version := "2.1.0_SNAPSHOT"
 organization := "com.github.saurfang"
 
 scalaVersion := "2.11.12"
 crossScalaVersions := Seq("2.10.7", "2.11.12")
 
-scalacOptions ++= Seq("-target:jvm-1.7")
-javacOptions ++= Seq("-source", "1.7", "-target", "1.7")
+scalacOptions ++= Seq("-target:jvm-1.8")
+javacOptions ++= Seq("-source", "1.8", "-target", "1.8")
 
 libraryDependencies ++= Seq(
   "com.epam" % "parso" % "2.0.10",

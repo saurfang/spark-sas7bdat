@@ -1,4 +1,4 @@
-// Copyright (C) 2015 Forest Fang.
+// Copyright (C) 2018 Forest Fang.
 // See the LICENCE.txt file distributed with this work for additional
 // information regarding copyright ownership.
 //
@@ -27,7 +27,7 @@ import org.apache.hadoop.mapred.{FileSplit, InputSplit, RecordReader}
 import org.apache.log4j.LogManager
 
 /**
- * An [[RecordReader]] for [[SasInputFormat]].
+ * A [[RecordReader]] for [[SasInputFormat]].
  * Each split is aligned to the closest preceding page boundary, calculated from the page size specified in the .sas7bdat meta info.
  */
 class SasRecordReader(job: Configuration, split: InputSplit) extends RecordReader[NullWritable, Array[Object]] {
@@ -48,8 +48,7 @@ class SasRecordReader(job: Configuration, split: InputSplit) extends RecordReade
   
   //// Initialize
   // Variables
-  private var recordCount: Int = 0
-  private var lastPageBlockCounter: Int = 0
+  private var recordCount: Long = 0
   private var recordValue: Array[Object] = _
   
   // Start/End byte positions for this split
@@ -138,15 +137,16 @@ class SasRecordReader(job: Configuration, split: InputSplit) extends RecordReade
     if (countingInputStream != null) {
       countingInputStream.close()
     }
+    if (fileInputStream != null) {
+      fileInputStream.close() 
+    }
   }
   
   // getProgress()
   override def getProgress: Float = {
     splitStart match {
       case x if x == splitEnd => 0.0F
-      case _ => Math.min(
-        (getPos / (splitEnd - splitStart)).toFloat, 1.0
-      ).toFloat
+      case _ => Math.min( (getPos / (splitEnd - splitStart)), 1.0F ).toFloat
     }
   }
   
@@ -157,7 +157,7 @@ class SasRecordReader(job: Configuration, split: InputSplit) extends RecordReade
     lazy val readNext = {
       
       // Read next row.
-      val recordValue: Option[Array[Object]] = Option(sasFileReader.readNext(null))
+      val recordValue: Option[Array[Object]] = Option(sasFileReader.readNext())
       
       // Store the returned row in the provided value object.
       if (!recordValue.isEmpty) {
