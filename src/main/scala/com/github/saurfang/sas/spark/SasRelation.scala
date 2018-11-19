@@ -47,9 +47,14 @@ import scala.util.control.NonFatal
 case class SasRelation protected[spark](
                                          location: String,
                                          userSchema: StructType = null,
-                                         forceLowerCaseColumnNames: Boolean = false,
-                                         readColLabelAsComment: Boolean = false,
-                                         readFormattedColsAsDecimal: Boolean = false,
+                                         extractLabel: Boolean = false,
+                                         forceLowercaseNames: Boolean = false,
+                                         inferDecimal: Boolean = false,
+                                         inferDecimalScale: Option[Int] = None,
+                                         inferFloat: Boolean = false,
+                                         inferInt: Boolean = false,
+                                         inferLong: Boolean = false,
+                                         inferShort: Boolean = false,
                                          minPartitions: Int = 0
                                          )(@transient val sqlContext: SQLContext)
   extends BaseRelation with TableScan {
@@ -58,9 +63,14 @@ case class SasRelation protected[spark](
   
   // Automatically extract schema from file.
   val schema = inferSchema(
-    forceLowerCaseColumnNames,
-    readColLabelAsComment,
-    readFormattedColsAsDecimal
+    extractLabel,
+    forceLowercaseNames,
+    inferDecimal,
+    inferDecimalScale,
+    inferFloat,
+    inferInt,
+    inferLong,
+    inferShort
   )
 
   override def buildScan: RDD[Row] = {
@@ -100,6 +110,9 @@ case class SasRelation protected[spark](
                 case DoubleType => x
                 case DecimalType() => new java.math.BigDecimal(x.toString)
                 case FloatType => x.floatValue
+                case IntegerType => x.intValue
+                case LongType => x.longValue
+                case ShortType => x.shortValue
                 case y => throw new IOException(s"Provided schema for column '${schemaFields(index).name}}' does not match the read data. Specified: $y -- Found: $x (of class java.lang.Double)")
               }
             }
@@ -109,6 +122,7 @@ case class SasRelation protected[spark](
                 case LongType => x
                 case DoubleType => x.doubleValue
                 case DecimalType() => new java.math.BigDecimal(x.toString)
+                case FloatType => x.floatValue
                 case IntegerType => x.intValue
                 case ShortType => x.shortValue
                 case y => throw new IOException(s"Provided schema for column '${schemaFields(index).name}}' does not match the read data. Specified: $y -- Found: $x (of class java.lang.Long)")
@@ -118,9 +132,11 @@ case class SasRelation protected[spark](
             case x: java.lang.Integer => {
               schemaFields(index).dataType match {
                 case IntegerType => x
-                case ShortType => x.shortValue
                 case DoubleType => x.doubleValue
                 case DecimalType() => new java.math.BigDecimal(x.toString)
+                case FloatType => x.floatValue
+                case LongType => x.longValue
+                case ShortType => x.shortValue
                 case y => throw new IOException(s"Provided schema for column '${schemaFields(index).name}}' does not match the read data. Specified: $y -- Found: $x (of class java.lang.Integer)")
               }
             }
@@ -160,7 +176,16 @@ case class SasRelation protected[spark](
     }
   }
 
-  private def inferSchema(forceLowerCaseColumnNames: Boolean, readColLabelAsComment: Boolean, readFormattedColsAsDecimal: Boolean): StructType = {
+  private def inferSchema(
+    extractLabel: Boolean,
+    forceLowercaseNames: Boolean,
+    inferDecimal: Boolean,
+    inferDecimalScale: Option[Int],
+    inferFloat: Boolean,
+    inferInt: Boolean,
+    inferLong: Boolean,
+    inferShort: Boolean
+  ): StructType = {
        
     if (this.userSchema != null) {
       userSchema
@@ -175,15 +200,16 @@ case class SasRelation protected[spark](
       
       // Retrieve some SAS constants.
       val DATE_FORMAT_STRINGS = ParsoWrapper.DATE_FORMAT_STRINGS
-      val DATE_TIME_FORMAT_STRINGS = ParsoWrapper.DATE_TIME_FORMAT_STRINGS 
+      val DATE_TIME_FORMAT_STRINGS = ParsoWrapper.DATE_TIME_FORMAT_STRINGS
       
       // Create a buffer of ShemaFields corresponding to the SAS metadata.
       val schemaFields = sasFileReader.getColumns.map { column =>
         
         // Retrieve general info about current column.
         val columnClass: Class[_] = column.getType
-        val columnName: String = if (forceLowerCaseColumnNames) { column.getName.toLowerCase } else { column.getName }
-        val columnLabel: Option[String] = if (readColLabelAsComment) { Option(column.getLabel) } else { Option(null) }        
+        val columnName: String = if (forceLowercaseNames) { column.getName.toLowerCase } else { column.getName }
+        val columnLabel: Option[String] = if (extractLabel) { Option(column.getLabel) } else { None }
+        val columnLength: Int = column.getLength
         
         // Retrieve format info about current column.
         val columnFormat: ColumnFormat = column.getFormat
@@ -198,16 +224,32 @@ case class SasRelation protected[spark](
               TimestampType
             } else if (DATE_FORMAT_STRINGS.contains(columnFormatName)) {
               DateType
-            } else if (readFormattedColsAsDecimal && !columnFormat.isEmpty){
-              DataTypes.createDecimalType(columnFormatWidth, columnFormatPrecision)
+            } else if (columnFormatPrecision == 0 && columnFormatWidth != 0) {
+              columnLength match {
+                case l if (inferShort && l <= 2) => ShortType
+                case l if (inferInt && l <= 4) => IntegerType
+                case l if (inferLong && l <= 8) => LongType
+                case _ => DoubleType
+              }
+            } else if (inferDecimal && columnFormatPrecision >= 1 && columnFormatWidth != 0) {
+              DecimalType(inferDecimalScale.getOrElse(columnFormatWidth), columnFormatPrecision)
+            } else if (inferFloat && columnLength <= 4) {
+              FloatType
             } else {
               DoubleType
-            } 
+            }
           } else { 
             StringType 
-          }  
+          }
         }
-        StructField(columnName, columnSparkType, nullable = true).withComment(columnLabel.getOrElse(""))
+        
+        // Return a struct field for this column.
+        if (columnLabel.isEmpty) {
+          StructField(columnName, columnSparkType, nullable = true)
+        } else {
+          StructField(columnName, columnSparkType, nullable = true).withComment(columnLabel.get)
+        }
+        
       }
       inputStream.close()
       StructType(schemaFields)

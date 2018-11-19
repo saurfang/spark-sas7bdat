@@ -49,44 +49,128 @@ class DefaultSource
                                schema: StructType): SasRelation = {
     val path = checkPath(parameters)
     
-    val forceLowerCaseColumnNames = parameters.getOrElse("forceLowerCaseColumnNames", "false")
-    val forceLowerCaseColumnNamesFlag = 
-      if (forceLowerCaseColumnNames == "false") {
+    // extractLabel
+    val extractLabel = parameters.getOrElse("extractLabel", "false")
+    val extractLabelFlag = {
+      if (extractLabel == "false") {
         false
-      } else if (forceLowerCaseColumnNames == "true") {
+      } else if (extractLabel == "true") {
         true
       } else {
-        throw new Exception("forceLowerCaseColumnNames can only be true or false")
+        throw new Exception("extractLabel can only be true or false")
       }
+    }
     
-    val readColLabelAsComment = parameters.getOrElse("readColLabelAsComment", "false")
-    val readColLabelAsCommentFlag = 
-      if (readColLabelAsComment == "false") {
+    // forceLowercaseNames
+    val forceLowercaseNames = parameters.getOrElse("forceLowercaseNames", "false")
+    val forceLowercaseNamesFlag = {
+      if (forceLowercaseNames == "false") {
         false
-      } else if (readColLabelAsComment == "true") {
+      } else if (forceLowercaseNames == "true") {
         true
       } else {
-        throw new Exception("readColLabelAsComment can only be true or false")
+        throw new Exception("forceLowercaseNames can only be true or false")
       }
+    }
     
-    val readFormattedColsAsDecimal = parameters.getOrElse("readFormattedColsAsDecimal", "false")
-    val readFormattedColsAsDecimalFlag = 
-      if (readFormattedColsAsDecimal == "false") {
+    // inferDecimal
+    val inferDecimal = parameters.getOrElse("inferDecimal", "false")
+    val inferDecimalFlag = {
+      if (inferDecimal == "false") {
         false
-      } else if (readFormattedColsAsDecimal == "true") {
+      } else if (inferDecimal == "true") {
         true
       } else {
-        throw new Exception("readFormattedColsAsDecimal can only be true or false")
+        throw new Exception("inferDecimal can only be true or false")
       }
+    }
     
-    val minPartitionsStr = parameters.getOrElse("minPartitionsStr", "0")
-    val minPartitions = 
+    // inferDecimalScale
+    val inferDecimalScaleStr = parameters.getOrElse("inferDecimalScale", "")
+    val inferDecimalScaleInt: Option[Int] = {
+      try {
+        if (inferDecimalScaleStr.isEmpty) {
+          None
+        } else {
+          val decimalScale = inferDecimalScaleStr.toInt
+          require(decimalScale > 0 && decimalScale <= 38)
+          Some(decimalScale)
+        }
+      } catch {
+        case e: Exception => throw new Exception("inferDecimalScale must be a valid integer between 1 and 38")
+      }
+    }
+    
+    // inferFloat
+    val inferFloat = parameters.getOrElse("inferFloat", "false")
+    val inferFloatFlag = {
+      if (inferFloat == "false") {
+        false
+      } else if (inferFloat == "true") {
+        true
+      } else {
+        throw new Exception("inferFloat can only be true or false")
+      }
+    }
+    
+    // inferInt
+    val inferInt = parameters.getOrElse("inferInt", "false")
+    val inferIntFlag = {
+      if (inferInt == "false") {
+        false
+      } else if (inferInt == "true") {
+        true
+      } else {
+        throw new Exception("inferInt can only be true or false")
+      }
+    }
+    
+    // inferLong
+    val inferLong = parameters.getOrElse("inferLong", "false")
+    val inferLongFlag = {
+      if (inferLong == "false") {
+        false
+      } else if (inferLong == "true") {
+        true
+      } else {
+        throw new Exception("inferLong can only be true or false")
+      }
+    }
+    
+    // inferShort
+    val inferShort = parameters.getOrElse("inferShort", "false")
+    val inferShortFlag = {
+      if (inferShort == "false") {
+        false
+      } else if (inferShort == "true") {
+        true
+      } else {
+        throw new Exception("inferShort can only be true or false")
+      }
+    }
+    
+    // minPartitions
+    val minPartitionsStr = parameters.getOrElse("minPartitions", "0")
+    val minPartitionsInt = {
       try {
         minPartitionsStr.toInt
       } catch {
         case e: Exception => throw new Exception("minPartitions must be a valid integer")
       }
+    }
     
-    SasRelation(path, schema, forceLowerCaseColumnNamesFlag, readColLabelAsCommentFlag, readFormattedColsAsDecimalFlag, minPartitions)(sqlContext)
+    SasRelation(
+      path, 
+      schema, 
+      extractLabelFlag,
+      forceLowercaseNamesFlag, 
+      inferDecimalFlag,
+      inferDecimalScaleInt,
+      inferFloatFlag,
+      inferIntFlag,
+      inferLongFlag,
+      inferShortFlag,
+      minPartitionsInt
+    )(sqlContext)
   }
 }

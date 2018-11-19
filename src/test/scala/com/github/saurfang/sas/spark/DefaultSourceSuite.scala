@@ -37,11 +37,11 @@ class DefaultSourceSuite extends FunSuite with Matchers with SharedSparkContext 
     // Read using pure SQL statements.
     sqlContext.sql(
       s"""
-        |CREATE TEMPORARY TABLE dtTable
+        |CREATE TEMPORARY TABLE datetimeTable
         |USING com.github.saurfang.sas.spark
         |OPTIONS (path "$sasDatetimePath")
       """.stripMargin)
-    val sqlDF = sqlContext.sql("SELECT * FROM dtTable")
+    val sqlDF = sqlContext.sql("SELECT * FROM datetimeTable")
 
     // Ensure they return the same data.
     implicitDF.collect() should === (sqlDF.collect())
