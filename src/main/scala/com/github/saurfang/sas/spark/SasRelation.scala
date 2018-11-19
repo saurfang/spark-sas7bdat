@@ -86,93 +86,62 @@ case class SasRelation protected[spark](
         minPartitions).map(_._2)
 
     // Convert our RDD[Array[Object]] into RDD[Row]
-    baseRDD.mapPartitions {recordIterator => parseSAS(recordIterator, schema.fields)}
+    baseRDD.mapPartitions {rowIterator => parseSAS(rowIterator, schema.fields)}
   }
 
-  private def parseSAS(recordIterator: Iterator[Array[Object]], schemaFields: Seq[StructField]): Iterator[Row] = {
+  private def parseSAS(rowIterator: Iterator[Array[Object]], schemaFields: Seq[StructField]): Iterator[Row] = {
     
-    recordIterator.map { recordArray =>
+    var isFirstRow: Boolean = true
     
-      var index: Int = 0
-      val rowArray = new Array[Any](schemaFields.length)
-
-      try {
+    rowIterator.map { rowArray =>
+    
+      // Check that the right number of columns were passed as schema.
+      if (isFirstRow) {
+        val numColsRead: Int = rowArray.length
+        val numColsSchema: Int = schemaFields.length
         
-        index = 0
-        
-        while (index < schemaFields.length) {
-          
-          // Conform parso's returned array of {Date, Double, Long, Int, String} into the provided schema.
-          rowArray(index) = recordArray(index) match {
-                                  
-            case x: java.lang.Double => {
-              schemaFields(index).dataType match {
-                case DoubleType => x
-                case DecimalType() => new java.math.BigDecimal(x.toString)
-                case FloatType => x.floatValue
-                case IntegerType => x.intValue
-                case LongType => x.longValue
-                case ShortType => x.shortValue
-                case y => throw new IOException(s"Provided schema for column '${schemaFields(index).name}}' does not match the read data. Specified: $y -- Found: $x (of class java.lang.Double)")
-              }
-            }
-                        
-            case x: java.lang.Long => {
-              schemaFields(index).dataType match {
-                case LongType => x
-                case DoubleType => x.doubleValue
-                case DecimalType() => new java.math.BigDecimal(x.toString)
-                case FloatType => x.floatValue
-                case IntegerType => x.intValue
-                case ShortType => x.shortValue
-                case y => throw new IOException(s"Provided schema for column '${schemaFields(index).name}}' does not match the read data. Specified: $y -- Found: $x (of class java.lang.Long)")
-              }
-            }
-            
-            case x: java.lang.Integer => {
-              schemaFields(index).dataType match {
-                case IntegerType => x
-                case DoubleType => x.doubleValue
-                case DecimalType() => new java.math.BigDecimal(x.toString)
-                case FloatType => x.floatValue
-                case LongType => x.longValue
-                case ShortType => x.shortValue
-                case y => throw new IOException(s"Provided schema for column '${schemaFields(index).name}}' does not match the read data. Specified: $y -- Found: $x (of class java.lang.Integer)")
-              }
-            }
-            
-            case x: java.lang.String => {
-              schemaFields(index).dataType match {
-                case StringType => x
-                case y => throw new IOException(s"Provided schema for column '${schemaFields(index).name}}' does not match the read data. Specified: $y -- Found: $x (of class java.lang.String)")
-              }
-            }
-            
-            case x: java.util.Date => {
-              schemaFields(index).dataType match {
-                case DateType => new java.sql.Date(x.getTime)
-                case TimestampType => new java.sql.Timestamp(x.getTime)
-                case y => throw new IOException(s"Provided schema for column '${schemaFields(index).name}}' does not match the read data. Specified: $y -- Found: $x (of class java.lang.Date)")
-              }
-            }
-            
-            case null => {
-              if (schemaFields(index).nullable) {
-                null
-              } else {
-                throw new IOException(s"Column: '${schemaFields(index).name}' (at index: $index), contains a null value but its schema specified it as non-nullable.")
-              }
+        if (numColsRead != numColsSchema) {
+          throw new IOException(s"Provided schema has $numColsSchema but SAS file has $numColsRead columns.")
+        }
+        isFirstRow = false
+      }
+      
+      // Conform parso's returned array of {Date, Double, Long, Int, String} into the provided schema.
+      val conformedRowArray: Array[Any] = rowArray.zipWithIndex.map { case (elementValue, index) =>
+        elementValue match {
+          case null => {
+            schemaFields(index).nullable match {
+              case true => null
+              case false => throw new IOException(s"Column: '${schemaFields(index).name}' (at index: $index), contains a null value but the provided schema specified it as non-nullable.")
             }
           }
-          index += 1
+          case x: java.lang.Number => {
+            schemaFields(index).dataType match {
+              case DecimalType() => new java.math.BigDecimal(x.toString)
+              case DoubleType => x.doubleValue
+              case FloatType => x.floatValue
+              case IntegerType => x.intValue
+              case LongType => x.longValue
+              case ShortType => x.shortValue
+              case _ => throw new IOException(s"Column: '${schemaFields(index).name}' (at index: $index), cannot have DataType: '${schemaFields(index).dataType}', found value: $x")
+            }
+          }
+          case x: java.lang.String => {
+            schemaFields(index).dataType match {
+              case StringType => x
+              case _ => throw new IOException(s"Column: '${schemaFields(index).name}' (at index: $index), cannot have DataType: '${schemaFields(index).dataType}', found value: $x")
+            }
+          }
+          case x: java.util.Date => {
+            schemaFields(index).dataType match {
+              case TimestampType => new java.sql.Timestamp(x.getTime)
+              case DateType => new java.sql.Date(x.getTime)
+              case _ => throw new IOException(s"Column: '${schemaFields(index).name}' (at index: $index), cannot have DataType: '${schemaFields(index).dataType}', found value: $x")
+            }
+          }
         }
-        Row.fromSeq(rowArray)
       }
-      catch {
-        // Catch non-fatal errors, and tell the user which record caused it.
-        case NonFatal(e) =>
-          throw new IOException(s"Exception while parsing record: ${recordArray.toList}.", e)
-      }
+      Row.fromSeq(conformedRowArray)
     }
   }
 
@@ -238,7 +207,7 @@ case class SasRelation protected[spark](
             } else {
               DoubleType
             }
-          } else { 
+          } else {
             StringType 
           }
         }
