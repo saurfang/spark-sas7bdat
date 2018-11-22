@@ -21,9 +21,9 @@ import org.apache.spark.sql.sources.{RelationProvider, SchemaRelationProvider}
 import org.apache.spark.sql.types.StructType
 
 /**
- * Provides access to SAS data from pure SQL statements (i.e. for users of the
- * JDBC server).
- */
+  * Provides access to SAS data from pure SQL statements (i.e. for users of the
+  * JDBC server).
+  */
 class DefaultSource
   extends RelationProvider with SchemaRelationProvider {
 
@@ -32,23 +32,23 @@ class DefaultSource
   }
 
   /**
-   * Creates a new relation for data store in sas7bdat given parameters.
-   * Parameters have to include 'path'
-   */
+    * Creates a new relation for data store in sas7bdat given parameters.
+    * Parameters have to include 'path'
+    */
   override def createRelation(sqlContext: SQLContext, parameters: Map[String, String]): SasRelation = {
     createRelation(sqlContext, parameters, null)
   }
 
   /**
-   * Creates a new relation for data store in sas7bdat given parameters and user supported schema.
-   * Parameters have to include 'path'
-   */
+    * Creates a new relation for data store in sas7bdat given parameters and user supported schema.
+    * Parameters have to include 'path'
+    */
   override def createRelation(
                                sqlContext: SQLContext,
                                parameters: Map[String, String],
                                schema: StructType): SasRelation = {
     val path = checkPath(parameters)
-    
+
     // extractLabel
     val extractLabel = parameters.getOrElse("extractLabel", "false")
     val extractLabelFlag = {
@@ -60,7 +60,7 @@ class DefaultSource
         throw new Exception("extractLabel can only be true or false")
       }
     }
-    
+
     // forceLowercaseNames
     val forceLowercaseNames = parameters.getOrElse("forceLowercaseNames", "false")
     val forceLowercaseNamesFlag = {
@@ -72,7 +72,7 @@ class DefaultSource
         throw new Exception("forceLowercaseNames can only be true or false")
       }
     }
-    
+
     // inferDecimal
     val inferDecimal = parameters.getOrElse("inferDecimal", "false")
     val inferDecimalFlag = {
@@ -84,7 +84,7 @@ class DefaultSource
         throw new Exception("inferDecimal can only be true or false")
       }
     }
-    
+
     // inferDecimalScale
     val inferDecimalScaleStr = parameters.getOrElse("inferDecimalScale", "")
     val inferDecimalScaleInt: Option[Int] = {
@@ -100,7 +100,7 @@ class DefaultSource
         case e: Exception => throw new Exception("inferDecimalScale must be a valid integer between 1 and 38")
       }
     }
-    
+
     // inferFloat
     val inferFloat = parameters.getOrElse("inferFloat", "false")
     val inferFloatFlag = {
@@ -112,7 +112,7 @@ class DefaultSource
         throw new Exception("inferFloat can only be true or false")
       }
     }
-    
+
     // inferInt
     val inferInt = parameters.getOrElse("inferInt", "false")
     val inferIntFlag = {
@@ -124,7 +124,7 @@ class DefaultSource
         throw new Exception("inferInt can only be true or false")
       }
     }
-    
+
     // inferLong
     val inferLong = parameters.getOrElse("inferLong", "false")
     val inferLongFlag = {
@@ -136,7 +136,7 @@ class DefaultSource
         throw new Exception("inferLong can only be true or false")
       }
     }
-    
+
     // inferShort
     val inferShort = parameters.getOrElse("inferShort", "false")
     val inferShortFlag = {
@@ -148,7 +148,7 @@ class DefaultSource
         throw new Exception("inferShort can only be true or false")
       }
     }
-    
+
     // minPartitions
     val minPartitionsStr = parameters.getOrElse("minPartitions", "0")
     val minPartitionsInt = {
@@ -158,19 +158,19 @@ class DefaultSource
         case e: Exception => throw new Exception("minPartitions must be a valid integer")
       }
     }
-    
+
     SasRelation(
-      path, 
-      schema, 
-      extractLabelFlag,
-      forceLowercaseNamesFlag, 
-      inferDecimalFlag,
-      inferDecimalScaleInt,
-      inferFloatFlag,
-      inferIntFlag,
-      inferLongFlag,
-      inferShortFlag,
-      minPartitionsInt
+      location = path,
+      userSchema = schema,
+      extractLabel = extractLabelFlag,
+      forceLowercaseNames = forceLowercaseNamesFlag,
+      inferDecimal = inferDecimalFlag,
+      inferDecimalScale = inferDecimalScaleInt,
+      inferFloat = inferFloatFlag,
+      inferInt = inferIntFlag,
+      inferLong = inferLongFlag,
+      inferShort = inferShortFlag,
+      minPartitions = minPartitionsInt
     )(sqlContext)
   }
 }

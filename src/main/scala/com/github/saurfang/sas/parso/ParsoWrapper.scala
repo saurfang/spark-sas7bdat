@@ -26,32 +26,32 @@ import com.epam.parso.impl.SasFileParser
 import com.github.saurfang.sas.util.PrivateMethodExposer
 
 /**
- * An object to expose private methods from com.epam.parso.impl.SasFileParser and com.epam.parso.impl.SasFileConstants.
- */
+  * An object to expose private methods from com.epam.parso.impl.SasFileParser and com.epam.parso.impl.SasFileConstants.
+  */
 object ParsoWrapper {
 
   // Define a method to build a SasFileParserWrapper
   def createSasFileParser(inputStream: InputStream): SasFileParserWrapper = {
-    
+
     // Get an instance of SasFileParser.Builder
     val builderClass = Class.forName("com.epam.parso.impl.SasFileParser$Builder")
     val builderConstructor = builderClass.getDeclaredConstructors()(0)
     builderConstructor.setAccessible(true)
     val builderInstance = builderConstructor.newInstance()
-    
+
     // Get a private method exposer for the builder.
     val builderExposer = PrivateMethodExposer(builderInstance.asInstanceOf[AnyRef])
-    
+
     // Build a sasFileParser from our input stream
     builderExposer('sasFileStream)(inputStream)
     val sasFileParser = builderExposer('build)()
-    
+
     new SasFileParserWrapper(sasFileParser.asInstanceOf[SasFileParser])
   }
 
   // Read SAS file metadata constants specified by parso.
   private val sasFileConstantsClass = Class.forName("com.epam.parso.impl.SasFileConstants")
-  
+
   lazy val DATE_TIME_FORMAT_STRINGS: util.Set[String] = {
     val field = sasFileConstantsClass.getDeclaredField("DATE_TIME_FORMAT_STRINGS")
     field.setAccessible(true)
@@ -75,19 +75,18 @@ class SasFileParserWrapper(val sasFileParser: SasFileParser) {
 
   private[this] val sasFileParserPrivateExposer = PrivateMethodExposer(sasFileParser)
 
-  // Expose getSasFileProperties() 
+  // Expose getSasFileProperties()
   def getSasFileProperties(): SasFileProperties = {
     sasFileParserPrivateExposer('getSasFileProperties)().asInstanceOf[SasFileProperties]
   }
-  
+
   // Expose readNext()
   def readNext(): Array[Object] = {
     sasFileParserPrivateExposer('readNext)(null).asInstanceOf[Array[Object]]
   }
-  
+
   // Expose readNextPage()
   def readNextPage(): Unit = {
     sasFileParserPrivateExposer('readNextPage)()
   }
 }
-

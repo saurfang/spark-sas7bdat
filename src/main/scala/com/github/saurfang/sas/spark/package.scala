@@ -29,5 +29,4 @@ package object spark {
       sqlContext.baseRelationToDataFrame(sasRelation)
     }
   }
-
 }

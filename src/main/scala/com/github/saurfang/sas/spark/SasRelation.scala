@@ -26,7 +26,7 @@ import com.github.saurfang.sas.parso.ParsoWrapper
 
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.io.NullWritable
-import org.apache.hadoop.mapred.{FileInputFormat, JobConf}
+import org.apache.hadoop.mapred.FileInputFormat
 
 import org.apache.log4j.LogManager
 
@@ -41,9 +41,9 @@ import scala.collection.JavaConversions._
 import scala.util.control.NonFatal
 
 /**
- * Defines a RDD that is backed by [[SasInputFormat]]. Data are coerced into appropriate types according to
- * meta information embedded in .sas7bdat file.
- */
+  * Defines a RDD that is backed by [[SasInputFormat]]. Data are coerced into appropriate types according to
+  * meta information embedded in .sas7bdat file.
+  */
 case class SasRelation protected[spark](
                                          location: String,
                                          userSchema: StructType = null,
@@ -56,56 +56,56 @@ case class SasRelation protected[spark](
                                          inferLong: Boolean = false,
                                          inferShort: Boolean = false,
                                          minPartitions: Int = 0
-                                         )(@transient val sqlContext: SQLContext)
+                                       )(@transient val sqlContext: SQLContext)
   extends BaseRelation with TableScan {
-    
+
   @transient lazy val log = LogManager.getLogger(this.getClass.getName)
-  
+
   // Automatically extract schema from file.
   val schema = inferSchema(
-    extractLabel,
-    forceLowercaseNames,
-    inferDecimal,
-    inferDecimalScale,
-    inferFloat,
-    inferInt,
-    inferLong,
-    inferShort
+    extractLabel = extractLabel,
+    forceLowercaseNames = forceLowercaseNames,
+    inferDecimal = inferDecimal,
+    inferDecimalScale = inferDecimalScale,
+    inferFloat = inferFloat,
+    inferInt = inferInt,
+    inferLong = inferLong,
+    inferShort = inferShort
   )
 
   override def buildScan: RDD[Row] = {
-    
+
     // Read an RDD with NullWritable keys, Array[Object] values, with SasInputFormat format.
-    // Then use map to extract every value from the returned RDD of (key, value) tuples.   
-    val baseRDD: RDD[Array[Object]] = 
-      sqlContext.sparkContext.hadoopFile(
-        location, 
-        classOf[SasInputFormat], 
-        classOf[NullWritable],
-        classOf[Array[Object]], 
-        minPartitions).map(_._2)
+    // Then use map to extract every value from the returned RDD of (key, value) tuples.
+    val baseRDD: RDD[Array[Object]] =
+    sqlContext.sparkContext.hadoopFile(
+      path = location,
+      inputFormatClass = classOf[SasInputFormat],
+      keyClass = classOf[NullWritable],
+      valueClass = classOf[Array[Object]],
+      minPartitions = minPartitions).map(_._2)
 
     // Convert our RDD[Array[Object]] into RDD[Row]
-    baseRDD.mapPartitions {rowIterator => parseSAS(rowIterator, schema.fields)}
+    baseRDD.mapPartitions { rowIterator => parseSAS(rowIterator, schema.fields) }
   }
 
   private def parseSAS(rowIterator: Iterator[Array[Object]], schemaFields: Seq[StructField]): Iterator[Row] = {
-    
+
     var isFirstRow: Boolean = true
-    
+
     rowIterator.map { rowArray =>
-    
+
       // Check that the right number of columns were passed as schema.
       if (isFirstRow) {
         val numColsRead: Int = rowArray.length
         val numColsSchema: Int = schemaFields.length
-        
+
         if (numColsRead != numColsSchema) {
           throw new IOException(s"Provided schema has $numColsSchema but SAS file has $numColsRead columns.")
         }
         isFirstRow = false
       }
-      
+
       // Conform parso's returned array of {Date, Double, Long, Int, String} into the provided schema.
       val conformedRowArray: Array[Any] = rowArray.zipWithIndex.map { case (elementValue, index) =>
         elementValue match {
@@ -146,46 +146,58 @@ case class SasRelation protected[spark](
   }
 
   private def inferSchema(
-    extractLabel: Boolean,
-    forceLowercaseNames: Boolean,
-    inferDecimal: Boolean,
-    inferDecimalScale: Option[Int],
-    inferFloat: Boolean,
-    inferInt: Boolean,
-    inferLong: Boolean,
-    inferShort: Boolean
-  ): StructType = {
-       
+                           extractLabel: Boolean,
+                           forceLowercaseNames: Boolean,
+                           inferDecimal: Boolean,
+                           inferDecimalScale: Option[Int],
+                           inferFloat: Boolean,
+                           inferInt: Boolean,
+                           inferLong: Boolean,
+                           inferShort: Boolean
+                         ): StructType = {
+
     if (this.userSchema != null) {
       userSchema
     } else {
-      
+
       // Open a reader so we can get the metadata.
       val conf = sqlContext.sparkContext.hadoopConfiguration
       val path = new Path(location)
       val fs = path.getFileSystem(conf)
       val inputStream = fs.open(path)
       val sasFileReader = new SasFileReaderImpl(inputStream)
-      
+
       // Retrieve some SAS constants.
       val DATE_FORMAT_STRINGS = ParsoWrapper.DATE_FORMAT_STRINGS
       val DATE_TIME_FORMAT_STRINGS = ParsoWrapper.DATE_TIME_FORMAT_STRINGS
-      
+
       // Create a buffer of ShemaFields corresponding to the SAS metadata.
       val schemaFields = sasFileReader.getColumns.map { column =>
-        
+
         // Retrieve general info about current column.
         val columnClass: Class[_] = column.getType
-        val columnName: String = if (forceLowercaseNames) { column.getName.toLowerCase } else { column.getName }
-        val columnLabel: Option[String] = if (extractLabel) { Option(column.getLabel) } else { None }
+        val columnName: String = if (forceLowercaseNames) {
+          column.getName.toLowerCase
+        } else {
+          column.getName
+        }
+        val columnLabel: Option[String] = if (extractLabel) {
+          if (!column.getLabel.isEmpty) {
+            Option(column.getLabel)
+          } else {
+            None
+          }
+        } else {
+          None
+        }
         val columnLength: Int = column.getLength
-        
+
         // Retrieve format info about current column.
         val columnFormat: ColumnFormat = column.getFormat
         val columnFormatName: String = columnFormat.getName
         val columnFormatWidth: Int = columnFormat.getWidth
         val columnFormatPrecision: Int = columnFormat.getPrecision
-        
+
         // Map SAS column types to Spark types.
         val columnSparkType: DataType = {
           if (columnClass == classOf[Number]) {
@@ -208,17 +220,17 @@ case class SasRelation protected[spark](
               DoubleType
             }
           } else {
-            StringType 
+            StringType
           }
         }
-        
+
         // Return a struct field for this column.
         if (columnLabel.isEmpty) {
           StructField(columnName, columnSparkType, nullable = true)
         } else {
           StructField(columnName, columnSparkType, nullable = true).withComment(columnLabel.get)
         }
-        
+
       }
       inputStream.close()
       StructType(schemaFields)
