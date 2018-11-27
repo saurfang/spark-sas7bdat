@@ -149,6 +149,16 @@ class DefaultSource
       }
     }
 
+    // metadataTimeout
+    val metadataTimeoutStr = parameters.getOrElse("metadataTimeout", "60")
+    val metadataTimeoutInt = {
+      try {
+        metadataTimeoutStr.toInt
+      } catch {
+        case e: Exception => throw new Exception("metadataTimeout must be a valid integer")
+      }
+    }
+
     // minPartitions
     val minPartitionsStr = parameters.getOrElse("minPartitions", "0")
     val minPartitionsInt = {
@@ -170,6 +180,7 @@ class DefaultSource
       inferInt = inferIntFlag,
       inferLong = inferLongFlag,
       inferShort = inferShortFlag,
+      metadataTimeout = metadataTimeoutInt,
       minPartitions = minPartitionsInt
     )(sqlContext)
   }

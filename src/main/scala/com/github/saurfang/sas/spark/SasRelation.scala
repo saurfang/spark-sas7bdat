@@ -38,6 +38,9 @@ import org.apache.spark.sql.types._
 
 
 import scala.collection.JavaConversions._
+import scala.concurrent._
+import scala.concurrent.duration._
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.control.NonFatal
 
 /**
@@ -55,6 +58,7 @@ case class SasRelation protected[spark](
                                          inferInt: Boolean = false,
                                          inferLong: Boolean = false,
                                          inferShort: Boolean = false,
+                                         metadataTimeout: Int = 60,
                                          minPartitions: Int = 0
                                        )(@transient val sqlContext: SQLContext)
   extends BaseRelation with TableScan {
@@ -70,7 +74,8 @@ case class SasRelation protected[spark](
     inferFloat = inferFloat,
     inferInt = inferInt,
     inferLong = inferLong,
-    inferShort = inferShort
+    inferShort = inferShort,
+    metadataTimeout = metadataTimeout
   )
 
   override def buildScan: RDD[Row] = {
@@ -112,7 +117,8 @@ case class SasRelation protected[spark](
           case null => {
             schemaFields(index).nullable match {
               case true => null
-              case false => throw new IOException(s"Column: '${schemaFields(index).name}' (at index: $index), contains a null value but the provided schema specified it as non-nullable.")
+              case false => throw new IOException(s"Column: '${schemaFields(index).name}' (at index: $index)," +
+                s" contains a null value but the provided schema specified it as non-nullable.")
             }
           }
           case x: java.lang.Number => {
@@ -123,20 +129,23 @@ case class SasRelation protected[spark](
               case IntegerType => x.intValue
               case LongType => x.longValue
               case ShortType => x.shortValue
-              case _ => throw new IOException(s"Column: '${schemaFields(index).name}' (at index: $index), cannot have DataType: '${schemaFields(index).dataType}', found value: $x")
+              case _ => throw new IOException(s"Column: '${schemaFields(index).name}' (at index: $index), cannot" +
+                s" have DataType: '${schemaFields(index).dataType}', found value: $x")
             }
           }
           case x: java.lang.String => {
             schemaFields(index).dataType match {
               case StringType => x
-              case _ => throw new IOException(s"Column: '${schemaFields(index).name}' (at index: $index), cannot have DataType: '${schemaFields(index).dataType}', found value: $x")
+              case _ => throw new IOException(s"Column: '${schemaFields(index).name}' (at index: $index), cannot" +
+                s" have DataType: '${schemaFields(index).dataType}', found value: $x")
             }
           }
           case x: java.util.Date => {
             schemaFields(index).dataType match {
               case TimestampType => new java.sql.Timestamp(x.getTime)
               case DateType => new java.sql.Date(x.getTime)
-              case _ => throw new IOException(s"Column: '${schemaFields(index).name}' (at index: $index), cannot have DataType: '${schemaFields(index).dataType}', found value: $x")
+              case _ => throw new IOException(s"Column: '${schemaFields(index).name}' (at index: $index), cannot" +
+                s" have DataType: '${schemaFields(index).dataType}', found value: $x")
             }
           }
         }
@@ -153,7 +162,8 @@ case class SasRelation protected[spark](
                            inferFloat: Boolean,
                            inferInt: Boolean,
                            inferLong: Boolean,
-                           inferShort: Boolean
+                           inferShort: Boolean,
+                           metadataTimeout: Int
                          ): StructType = {
 
     if (this.userSchema != null) {
@@ -165,7 +175,25 @@ case class SasRelation protected[spark](
       val path = new Path(location)
       val fs = path.getFileSystem(conf)
       val inputStream = fs.open(path)
-      val sasFileReader = new SasFileReaderImpl(inputStream)
+      val sasFileReaderFuture = future {
+        new SasFileReaderImpl(inputStream)
+      }
+
+      // Corrupt files hang, so we need to time out.
+      val sasFileReader: SasFileReaderImpl = {
+        try {
+          Await.result(sasFileReaderFuture, metadataTimeout seconds)
+        } catch {
+          case e: TimeoutException => throw new TimeoutException(s"Timed out after $metadataTimeout sec while " +
+            s"reading file metadata, file might be corrupt. (Change timeout with 'metadataTimeout' paramater)")
+        }
+      }
+
+      // Throw an error if the file has no columns.
+      val columnCount: Long = sasFileReader.getSasFileProperties.getColumnsCount
+      if (columnCount == 0) {
+        throw new IOException("SAS file has no columns, or might not be a valid SAS file.")
+      }
 
       // Retrieve some SAS constants.
       val DATE_FORMAT_STRINGS = ParsoWrapper.DATE_FORMAT_STRINGS
