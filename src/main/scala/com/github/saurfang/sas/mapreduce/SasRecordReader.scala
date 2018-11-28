@@ -14,61 +14,59 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package com.github.saurfang.sas.mapred
+package com.github.saurfang.sas.mapreduce
 
 import java.io.IOException
 
 import com.github.saurfang.sas.parso.ParsoWrapper
 import org.apache.commons.io.input.CountingInputStream
-import org.apache.hadoop.io.NullWritable
 import org.apache.hadoop.io.compress.CompressionCodecFactory
-import org.apache.hadoop.mapred.{FileSplit, InputSplit, RecordReader, JobConf}
+import org.apache.hadoop.io.NullWritable
+import org.apache.hadoop.mapreduce.{InputSplit, RecordReader, TaskAttemptContext}
+import org.apache.hadoop.mapreduce.lib.input.FileSplit
 import org.apache.log4j.LogManager
 
 /**
   * A [[RecordReader]] for [[SasInputFormat]].
-  * Each split is aligned to the closest preceding page boundary, calculated from the page size specified in the .sas7bdat meta info.
+  * Each split is aligned to the closest preceding page boundary,
+  * calculated from the page size specified in the .sas7bdat meta info.
   */
-class SasRecordReader(job: JobConf, split: InputSplit) extends RecordReader[NullWritable, Array[Object]] {
+class SasRecordReader(split: InputSplit,
+                      context: TaskAttemptContext) extends RecordReader[NullWritable, Array[Object]] {
 
   @transient lazy val log = LogManager.getLogger(this.getClass.getName)
 
-  //// Warm-ups
   // Process InputSplit
   private val fileSplit = split.asInstanceOf[FileSplit]
   private val filePath = fileSplit.getPath
+  private val jobConf = context.getConfiguration
 
   // Sanity Check: Ensure file is not compressed.
-  private val codec = new CompressionCodecFactory(job).getCodec(filePath)
-  if (codec != null) {
-    throw new IOException("SASRecordReader does not support reading compressed files.")
-  }
+  private val codec = new CompressionCodecFactory(jobConf).getCodec(filePath)
+  if (codec != null) {throw new IOException("SASRecordReader does not support reading compressed files.")}
 
-
-  //// Initialize
-  // Variables
+  // Initialize Variables
   private var recordCount: Long = 0
-  private var recordValue: Array[Object] = _
-
-  // Start/End byte positions for this split
-  private var splitStart: Long = fileSplit.getStart
-  private var splitEnd: Long = splitStart + fileSplit.getLength
+  private var currentRecordValue: Array[Object] = _
 
   // Initialize CountingInputStream
-  private val fs = filePath.getFileSystem(job)
+  private val fs = filePath.getFileSystem(jobConf)
   private val fileInputStream = fs.open(filePath)
   private val countingInputStream = new CountingInputStream(fileInputStream)
 
-  // Initialize parso SasFileParser
+  // Initialize Parso SasFileParser
   private val sasFileReader = ParsoWrapper.createSasFileParser(countingInputStream)
 
-  // Extract Static SAS-File Metadata
-  private val fileLength: Long = fs.getFileStatus(filePath).getLen()
+  // Extract static SAS-File Metadata
+  private val fileLength: Long = fs.getFileStatus(filePath).getLen
   private val headerLength: Long = sasFileReader.getSasFileProperties.getHeaderLength
   private val pageLength: Long = sasFileReader.getSasFileProperties.getPageLength
+  private val columnsCount: Long = sasFileReader.getSasFileProperties.getColumnsCount
 
+  // Calculate initial split byte positions
+  private var splitStart: Long = fileSplit.getStart
+  private var splitEnd: Long = splitStart + fileSplit.getLength
 
-  //// Align splits to page boundaries.
   // Expand splitStart to closest preceding page end.
   if (splitStart > 0) {
 
@@ -79,7 +77,8 @@ class SasRecordReader(job: JobConf, split: InputSplit) extends RecordReader[Null
     splitStart -= partialPageLength
 
     if (partialPageLength != 0) {
-      log.info(s"Expanded splitStart by $partialPageLength bytes to start on page boundary, splitStart is now: $splitStart.")
+      log
+        .info(s"Expanded splitStart by $partialPageLength bytes to start on page boundary, splitStart is now: $splitStart.")
     }
   }
 
@@ -98,12 +97,13 @@ class SasRecordReader(job: JobConf, split: InputSplit) extends RecordReader[Null
   }
 
   // Seek input stream (Don't seek if this is the first split, as it has already read past metadata)
-  val origStreamPos: Long = fileInputStream.getPos()
-  if (origStreamPos != splitStart && splitStart != 0) {
+  if (fileInputStream.getPos != splitStart && splitStart > 0) {
+
+    val originalPos = fileInputStream.getPos
 
     // Shift fileInputStream to start of split.
     fileInputStream.seek(splitStart)
-    log.info(s"Shifted fileInputStream to $splitStart offset from $origStreamPos.")
+    log.info(s"Shifted fileInputStream to $splitStart offset from $originalPos.")
 
     // Reset Byte Counter
     countingInputStream.resetByteCount()
@@ -113,24 +113,18 @@ class SasRecordReader(job: JobConf, split: InputSplit) extends RecordReader[Null
     sasFileReader.readNextPage()
   }
 
+  // Define initialise so we can compile, as it is marked abstract.
+  override def initialize(split: InputSplit, context: TaskAttemptContext): Unit = {
+  }
 
-  //// Override RecordReader Methods
-  // createKey()
-  override def createKey: NullWritable = {
+  override def getCurrentKey: NullWritable = {
     NullWritable.get
   }
 
-  // createValue()
-  override def createValue: Array[Object] = {
-    new Array[Object](sasFileReader.getSasFileProperties.getColumnsCount.toInt)
+  override def getCurrentValue: Array[Object] = {
+    currentRecordValue
   }
 
-  // getPos()
-  override def getPos: Long = {
-    countingInputStream.getByteCount
-  }
-
-  // close()
   override def close() {
     log.info(s"Read $getPos bytes and $recordCount records.")
     if (countingInputStream != null) {
@@ -141,26 +135,28 @@ class SasRecordReader(job: JobConf, split: InputSplit) extends RecordReader[Null
     }
   }
 
-  // getProgress()
   override def getProgress: Float = {
     splitStart match {
       case x if x == splitEnd => 0.0F
-      case _ => Math.min((getPos / (splitEnd - splitStart)), 1.0F).toFloat
+      case _ => Math.min(getPos / (splitEnd - splitStart), 1.0F)
     }
   }
 
-  // next()
-  override def next(key: NullWritable, value: Array[Object]): Boolean = {
+  override def nextKeyValue(): Boolean = {
 
     // Lazy evaluator to read next record.
     lazy val readNext = {
 
-      // Read next row.
+      // Clear the current stored record.
+      currentRecordValue = new Array[Object](columnsCount.toInt)
+
+      // Read next record.
       val recordValue: Option[Array[Object]] = Option(sasFileReader.readNext())
 
-      // Store the returned row in the provided value object.
+      // Store the returned record.
       if (!recordValue.isEmpty) {
-        recordValue.get.copyToArray(value)
+        // copyToArray handles partially corrupted records
+        recordValue.get.copyToArray(currentRecordValue)
         recordCount += 1
         true
       }
@@ -176,5 +172,10 @@ class SasRecordReader(job: JobConf, split: InputSplit) extends RecordReader[Null
     else {
       false
     }
+  }
+
+  // Get byte current byte position of the input stream.
+  private def getPos: Long = {
+    countingInputStream.getByteCount
   }
 }

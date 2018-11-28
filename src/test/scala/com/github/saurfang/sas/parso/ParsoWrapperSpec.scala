@@ -21,7 +21,7 @@ import org.scalatest.{FlatSpec, Matchers}
 class ParsoWrapperSpec extends FlatSpec with Matchers {
 
   "ParsoWrapper" should "create SasFileParserWrapper" in {
-    
+
     // Get an input stream containing a SAS dataset.
     val inputStream = getClass.getResource("/datetime.sas7bdat").openStream()
 
@@ -33,7 +33,7 @@ class ParsoWrapperSpec extends FlatSpec with Matchers {
   }
 
   "ParsoWrapper" should "return non null constants from parso" in {
-    
+
     // Ensure our wrapper correctly extracted the private constants from Parso.
     ParsoWrapper.DATE_FORMAT_STRINGS should not be null
     ParsoWrapper.DATE_FORMAT_STRINGS should not be empty

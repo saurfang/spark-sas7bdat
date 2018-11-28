@@ -16,49 +16,46 @@
 
 package com.github.saurfang.sas
 
-import com.github.saurfang.sas.mapred.SasInputFormat
-
+import com.github.saurfang.sas.mapreduce.SasInputFormat
 import org.apache.hadoop.fs.{FileSystem, Path}
 import org.apache.hadoop.io.NullWritable
 import org.apache.log4j.LogManager
 import org.apache.spark.SharedSparkContext
-import org.apache.spark.sql.SQLContext
 import org.apache.spark.rdd.RDD
+import org.apache.spark.sql.SQLContext
 import org.scalatest.{FlatSpec, Matchers}
 
 class SasInputFormatSpec extends FlatSpec with Matchers with SharedSparkContext {
-  
+
   @transient lazy val log = LogManager.getLogger(this.getClass.getName)
-  
-  val BLOCK_SIZE: Int = 3 * 1024 * 1024
-  val minPartitions: Int = 100
-  
+
   "SASInputFormat" should "read correct number of records" in {
-    
+
     val sqlContext = new SQLContext(sc)
-    
+
     // Set configs to cause multiple partitions/splits.
     val conf = sqlContext.sparkContext.hadoopConfiguration
-    conf.setInt("fs.local.block.size", BLOCK_SIZE)
-    conf.setInt("mapred.min.split.size", BLOCK_SIZE)
-    
+    conf.setLong("mapred.max.split.size", 2000000)
+
     // Get the path for our test file.
     val sasRandomPath = getClass.getResource("/random.sas7bdat").getPath
 
     // Read an RDD using SASInputFormat.
-    val sasRDD: RDD[(NullWritable, Array[Object])] = 
-      sqlContext.sparkContext.hadoopFile(
-        sasRandomPath, 
-        classOf[SasInputFormat], 
-        classOf[NullWritable],
-        classOf[Array[Object]], 
-        minPartitions)
-    
+    val sasRDD: RDD[(NullWritable, Array[Object])] = {
+      sqlContext.sparkContext.newAPIHadoopFile(
+        path = sasRandomPath,
+        fClass = classOf[SasInputFormat],
+        kClass = classOf[NullWritable],
+        vClass = classOf[Array[Object]],
+        conf = conf
+      )
+    }
+
     // Log the block size of our test file.
     val fileStatus = FileSystem.get(conf).getFileStatus(new Path(sasRandomPath))
     log.info(s"Block Size: ${fileStatus.getBlockSize}")
-    
+
     // Ensure the RDD has read the correct number of records.
-    sasRDD.count() should === (1000000)
+    sasRDD.count() should ===(1000000)
   }
 }

@@ -21,12 +21,13 @@ import org.apache.spark.sql.{DataFrame, SQLContext}
 package object spark {
 
   /**
-   * Adds a method, `sasFile`, to SQLContext that allows reading SAS data.
-   */
+    * Adds a method, `sasFile`, to SQLContext that allows reading SAS data.
+    */
   implicit class SasContext(sqlContext: SQLContext) {
     def sasFile(filePath: String): DataFrame = {
       val sasRelation = SasRelation(location = filePath)(sqlContext)
       sqlContext.baseRelationToDataFrame(sasRelation)
     }
   }
+
 }

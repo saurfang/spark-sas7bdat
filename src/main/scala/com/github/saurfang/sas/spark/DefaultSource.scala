@@ -35,7 +35,10 @@ class DefaultSource
     * Creates a new relation for data store in sas7bdat given parameters.
     * Parameters have to include 'path'
     */
-  override def createRelation(sqlContext: SQLContext, parameters: Map[String, String]): SasRelation = {
+  override def createRelation(
+                               sqlContext: SQLContext,
+                               parameters: Map[String, String]
+                             ): SasRelation = {
     createRelation(sqlContext, parameters, null)
   }
 
@@ -46,7 +49,9 @@ class DefaultSource
   override def createRelation(
                                sqlContext: SQLContext,
                                parameters: Map[String, String],
-                               schema: StructType): SasRelation = {
+                               schema: StructType
+                             ): SasRelation = {
+
     val path = checkPath(parameters)
 
     // extractLabel
@@ -159,13 +164,31 @@ class DefaultSource
       }
     }
 
-    // minPartitions
-    val minPartitionsStr = parameters.getOrElse("minPartitions", "0")
-    val minPartitionsInt = {
+    // minSplitSize
+    val minSplitSizeStr = parameters.getOrElse("minSplitSize", "")
+    val minSplitSizeLong: Option[Long] = {
       try {
-        minPartitionsStr.toInt
+        if (minSplitSizeStr.isEmpty) {
+          None
+        } else {
+          Some(minSplitSizeStr.toLong)
+        }
       } catch {
-        case e: Exception => throw new Exception("minPartitions must be a valid integer")
+        case e: Exception => throw new Exception("minSplitSize must be a valid long")
+      }
+    }
+
+    // maxSplitSize
+    val maxSplitSizeStr = parameters.getOrElse("maxSplitSize", "")
+    val maxSplitSizeLong: Option[Long] = {
+      try {
+        if (maxSplitSizeStr.isEmpty) {
+          None
+        } else {
+          Some(maxSplitSizeStr.toLong)
+        }
+      } catch {
+        case e: Exception => throw new Exception("maxSplitSize must be a valid long")
       }
     }
 
@@ -181,7 +204,9 @@ class DefaultSource
       inferLong = inferLongFlag,
       inferShort = inferShortFlag,
       metadataTimeout = metadataTimeoutInt,
-      minPartitions = minPartitionsInt
+      minSplitSize = minSplitSizeLong,
+      maxSplitSize = maxSplitSizeLong
     )(sqlContext)
   }
+
 }

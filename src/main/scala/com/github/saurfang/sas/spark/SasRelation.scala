@@ -20,28 +20,21 @@ import java.io.IOException
 
 import com.epam.parso.ColumnFormat
 import com.epam.parso.impl.SasFileReaderImpl
-
-import com.github.saurfang.sas.mapred.SasInputFormat
+import com.github.saurfang.sas.mapreduce.SasInputFormat
 import com.github.saurfang.sas.parso.ParsoWrapper
-
+import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.io.NullWritable
-import org.apache.hadoop.mapred.FileInputFormat
-
 import org.apache.log4j.LogManager
-
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.SQLContext
+import org.apache.spark.sql.{Row, SQLContext}
 import org.apache.spark.sql.sources.{BaseRelation, TableScan}
-import org.apache.spark.sql.Row
 import org.apache.spark.sql.types._
-
 
 import scala.collection.JavaConversions._
 import scala.concurrent._
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.util.control.NonFatal
 
 /**
   * Defines a RDD that is backed by [[SasInputFormat]]. Data are coerced into appropriate types according to
@@ -59,9 +52,9 @@ case class SasRelation protected[spark](
                                          inferLong: Boolean = false,
                                          inferShort: Boolean = false,
                                          metadataTimeout: Int = 60,
-                                         minPartitions: Int = 0
-                                       )(@transient val sqlContext: SQLContext)
-  extends BaseRelation with TableScan {
+                                         minSplitSize: Option[Long] = None,
+                                         maxSplitSize: Option[Long] = None
+                                       )(@transient val sqlContext: SQLContext) extends BaseRelation with TableScan {
 
   @transient lazy val log = LogManager.getLogger(this.getClass.getName)
 
@@ -80,15 +73,24 @@ case class SasRelation protected[spark](
 
   override def buildScan: RDD[Row] = {
 
+    // Start from the hadoopConfiguration in sparkContext.
+    val conf: Configuration = new Configuration(sqlContext.sparkContext.hadoopConfiguration)
+
+    // Set min/max split sizes if provided.
+    if (!minSplitSize.isEmpty) {conf.setLong("mapred.min.split.size", minSplitSize.get)}
+    if (!maxSplitSize.isEmpty) {conf.setLong("mapred.max.split.size", maxSplitSize.get)}
+
     // Read an RDD with NullWritable keys, Array[Object] values, with SasInputFormat format.
     // Then use map to extract every value from the returned RDD of (key, value) tuples.
-    val baseRDD: RDD[Array[Object]] =
-    sqlContext.sparkContext.hadoopFile(
-      path = location,
-      inputFormatClass = classOf[SasInputFormat],
-      keyClass = classOf[NullWritable],
-      valueClass = classOf[Array[Object]],
-      minPartitions = minPartitions).map(_._2)
+    val baseRDD: RDD[Array[Object]] = {
+      sqlContext.sparkContext.newAPIHadoopFile(
+        path = location,
+        fClass = classOf[SasInputFormat],
+        kClass = classOf[NullWritable],
+        vClass = classOf[Array[Object]],
+        conf = conf
+      ).map(_._2)
+    }
 
     // Convert our RDD[Array[Object]] into RDD[Row]
     baseRDD.mapPartitions { rowIterator => parseSAS(rowIterator, schema.fields) }

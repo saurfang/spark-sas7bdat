@@ -18,17 +18,34 @@ package com.github.saurfang.sas.parso
 
 import java.io.InputStream
 import java.util
-import java.util.ArrayList
 
 import com.epam.parso.SasFileProperties
 import com.epam.parso.impl.SasFileParser
-
 import com.github.saurfang.sas.util.PrivateMethodExposer
 
 /**
   * An object to expose private methods from com.epam.parso.impl.SasFileParser and com.epam.parso.impl.SasFileConstants.
   */
 object ParsoWrapper {
+
+  lazy val DATE_TIME_FORMAT_STRINGS: util.Set[String] = {
+    val field = sasFileConstantsClass.getDeclaredField("DATE_TIME_FORMAT_STRINGS")
+    field.setAccessible(true)
+    field.get(null).asInstanceOf[util.Set[String]]
+  }
+  lazy val DATE_FORMAT_STRINGS: util.Set[String] = {
+    val field = sasFileConstantsClass.getDeclaredField("DATE_FORMAT_STRINGS")
+    field.setAccessible(true)
+    field.get(null).asInstanceOf[util.Set[String]]
+  }
+  lazy val EPSILON: Double = {
+    val field = sasFileConstantsClass.getDeclaredField("EPSILON")
+    field.setAccessible(true)
+    field.getDouble(null)
+  }
+
+  // Read SAS file metadata constants specified by parso.
+  private val sasFileConstantsClass = Class.forName("com.epam.parso.impl.SasFileConstants")
 
   // Define a method to build a SasFileParserWrapper
   def createSasFileParser(inputStream: InputStream): SasFileParserWrapper = {
@@ -47,27 +64,6 @@ object ParsoWrapper {
     val sasFileParser = builderExposer('build)()
 
     new SasFileParserWrapper(sasFileParser.asInstanceOf[SasFileParser])
-  }
-
-  // Read SAS file metadata constants specified by parso.
-  private val sasFileConstantsClass = Class.forName("com.epam.parso.impl.SasFileConstants")
-
-  lazy val DATE_TIME_FORMAT_STRINGS: util.Set[String] = {
-    val field = sasFileConstantsClass.getDeclaredField("DATE_TIME_FORMAT_STRINGS")
-    field.setAccessible(true)
-    field.get(null).asInstanceOf[util.Set[String]]
-  }
-
-  lazy val DATE_FORMAT_STRINGS: util.Set[String] = {
-    val field = sasFileConstantsClass.getDeclaredField("DATE_FORMAT_STRINGS")
-    field.setAccessible(true)
-    field.get(null).asInstanceOf[util.Set[String]]
-  }
-
-  lazy val EPSILON: Double = {
-    val field = sasFileConstantsClass.getDeclaredField("EPSILON")
-    field.setAccessible(true)
-    field.getDouble(null)
   }
 }
 

@@ -27,28 +27,32 @@ __NOTE:__ we currently only support reading
 ## Docs:
 
 ### Parameters:
-* `extractLabel` _(Default: false)_
+* `extractLabel` _(Default: `false`)_
   * _Boolean:_ extract column labels as column comments for Parquet/Hive
-* `forceLowercaseNames` _(Default: false)_
+* `forceLowercaseNames` _(Default: `false`)_
   * Boolean: force column names to lower case
-* `inferDecimal` _(Default: false)_
+* `inferDecimal` _(Default: `false`)_
   * Boolean: infer numeric columns (with format width >0 and format precision >0), as _Decimal(Width, Precision)_
-* `inferDecimalScale` _(Default: each column's format width)_
+* `inferDecimalScale` _(Default: `each column's format width`)_
   * Int: scale of inferred decimals
-* `inferFloat` _(Default: false)_
+* `inferFloat` _(Default: `false`)_
   * Boolean: infer numeric columns (with <=4 bytes), as _Float_
-* `inferInt` _(Default: false)_
+* `inferInt` _(Default: `false`)_
   * Boolean: infer numeric columns (with <=4 bytes, format width >0 and format precision =0), as _Int_
-* `inferLong` _(Default: false)_
+* `inferLong` _(Default: `false`)_
   * Boolean: infer numeric columns (with <=8 bytes, format width >0 and format precision =0), as _Long_
-* `inferShort` _(Default: false)_
+* `inferShort` _(Default: `false`)_
   * Boolean: infer numeric columns (with <=2 bytes, format width >0 and format precision =0), as _Short_
-* `metadataTimeout` _(Default: 60)_
+* `metadataTimeout` _(Default: `60`)_
   * Int: number of seconds to allow reading of file metadata _(stops corrupt files hanging)_
-* `minPartitions` _(Default: 0)_
-  * Int: minimum number splits to use when reading
+* `minSplitSize` _(Default: `mapred.min.split.size`)_
+  * Long: minimum byte length of input splits _(splits are always at least 1MB, to ensure correct reads)_
+* `maxSplitSize` _(Default: `mapred.max.split.size`)_
+  * Long: maximum byte length of input splits, _(can be decreased to force higher parallelism)_
   
 __NOTE:__ the order of precedence for numeric type inference is: _Long_ -> _Int_ -> _Short_ -> _Decimal_ -> _Float_ -> _Double_
+
+__NOTE2:__ sas doesn’t have a concept of Long/Int/Short, instead it uses column formatters with 0 precision.
 
 ### Scala API
 ```scala
