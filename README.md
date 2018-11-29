@@ -22,7 +22,7 @@ The latest jar can be downloaded from [spark-packages](http://spark-packages.org
 * This library uses [parso](https://github.com/epam/parso/) for parsing as it is the only public available parser
 that handles both forms of SAS compression (CHAR and BINARY). 
 
-__NOTE:__ we currently only support reading
+__NOTE:__ this package does not support writing sas7bdat files
            
 ## Docs:
 
@@ -66,14 +66,20 @@ val df = {
 df.write.format("csv").option("header", "true").save("newcars.csv")
 ```
 
-You can also use the implicit reader: 
+You can also use the implicit readers: 
 
 ```scala
 import com.github.saurfang.sas.spark._
-val df = sqlContext.sasFile("cars.sas7bdat")
+
+// DataFrameReader
+val df = spark.read.sas("cars.sas7bdat")
 df.write.format("csv").option("header", "true").save("newcars.csv")
+
+// SQLContext
+val df2 = sqlContext.sasFile("cars.sas7bdat")
+df2.write.format("csv").option("header", "true").save("newcars.csv")
 ```
-(_Note: you cannot use parameters like `inferLong` with the implicit reader._)
+(_Note: you cannot use parameters like `inferLong` with the implicit readers._)
 ### Python API
 
 ```python

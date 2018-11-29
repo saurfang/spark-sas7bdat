@@ -16,18 +16,25 @@
 
 package com.github.saurfang.sas
 
-import org.apache.spark.sql.{DataFrame, SQLContext}
+import org.apache.spark.sql.{DataFrame, DataFrameReader, SQLContext}
 
 package object spark {
 
   /**
-    * Adds a method, `sasFile`, to SQLContext that allows reading SAS data.
+    * Adds a method, `sasFile`, to SQLContext that allows you to read sas files.
     */
   implicit class SasContext(sqlContext: SQLContext) {
     def sasFile(filePath: String): DataFrame = {
       val sasRelation = SasRelation(location = filePath)(sqlContext)
       sqlContext.baseRelationToDataFrame(sasRelation)
     }
+  }
+
+  /**
+    * Adds a method, `sas`, to DataFrameReader that allows you to read sas files.
+    */
+  implicit class SasDataFrameReader(reader: DataFrameReader) {
+    def sas: String => DataFrame = reader.format("com.github.saurfang.sas.spark").load
   }
 
 }

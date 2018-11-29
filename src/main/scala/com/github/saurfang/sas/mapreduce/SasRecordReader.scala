@@ -36,36 +36,42 @@ class SasRecordReader(split: InputSplit,
 
   @transient lazy val log = LogManager.getLogger(this.getClass.getName)
 
-  // Process InputSplit
+  // Process input parameters.
   private val fileSplit = split.asInstanceOf[FileSplit]
   private val filePath = fileSplit.getPath
   private val jobConf = context.getConfiguration
 
-  // Sanity Check: Ensure file is not compressed.
+  // Sanity-Check: Ensure file is not compressed.
   private val codec = new CompressionCodecFactory(jobConf).getCodec(filePath)
-  if (codec != null) {throw new IOException("SASRecordReader does not support reading compressed files.")}
+  if (codec != null) {
+    throw new IOException("SASRecordReader does not support reading compressed files.")
+  }
 
-  // Initialize Variables
+  // Initialize variables.
   private var recordCount: Long = 0
   private var currentRecordValue: Array[Object] = _
 
-  // Initialize CountingInputStream
+  // Initialize CountingInputStream.
   private val fs = filePath.getFileSystem(jobConf)
   private val fileInputStream = fs.open(filePath)
   private val countingInputStream = new CountingInputStream(fileInputStream)
 
-  // Initialize Parso SasFileParser
+  // Initialize Parso SasFileParser.
   private val sasFileReader = ParsoWrapper.createSasFileParser(countingInputStream)
 
-  // Extract static SAS-File Metadata
+  // Extract static SAS file metadata.
   private val fileLength: Long = fs.getFileStatus(filePath).getLen
   private val headerLength: Long = sasFileReader.getSasFileProperties.getHeaderLength
   private val pageLength: Long = sasFileReader.getSasFileProperties.getPageLength
-  private val columnsCount: Long = sasFileReader.getSasFileProperties.getColumnsCount
+  private val columnCount: Long = sasFileReader.getSasFileProperties.getColumnsCount
+  private val rowCount: Long = sasFileReader.getSasFileProperties.getRowCount
 
-  // Calculate initial split byte positions
+  // Calculate initial split byte positions.
   private var splitStart: Long = fileSplit.getStart
   private var splitEnd: Long = splitStart + fileSplit.getLength
+
+  // Log file information
+  log.info(s"Reading file of length $fileLength between $splitStart and $splitEnd. ($rowCount rows, $columnCount columns)")
 
   // Expand splitStart to closest preceding page end.
   if (splitStart > 0) {
@@ -77,12 +83,11 @@ class SasRecordReader(split: InputSplit,
     splitStart -= partialPageLength
 
     if (partialPageLength != 0) {
-      log
-        .info(s"Expanded splitStart by $partialPageLength bytes to start on page boundary, splitStart is now: $splitStart.")
+      log.info(s"Expanded splitStart by $partialPageLength bytes to start on page boundary, splitStart is now: $splitStart.")
     }
   }
 
-  // Shrink splitEnd to closest preceding page end. (Don't move last split, it should end on file end.)
+  // Shrink splitEnd to closest preceding page end. (Don't move last split, it should end on file end)
   if (splitEnd != fileLength) {
 
     // Calculate how many bytes we need to exclude, so we end on a page boundary.
@@ -96,7 +101,7 @@ class SasRecordReader(split: InputSplit,
     }
   }
 
-  // Seek input stream (Don't seek if this is the first split, as it has already read past metadata)
+  // Seek input stream. (Don't seek if this is the first split, as it has already read past metadata)
   if (fileInputStream.getPos != splitStart && splitStart > 0) {
 
     val originalPos = fileInputStream.getPos
@@ -105,7 +110,7 @@ class SasRecordReader(split: InputSplit,
     fileInputStream.seek(splitStart)
     log.info(s"Shifted fileInputStream to $splitStart offset from $originalPos.")
 
-    // Reset Byte Counter
+    // Reset Byte Counter.
     countingInputStream.resetByteCount()
 
     // If we seek then we need to look at the current page.
@@ -148,13 +153,13 @@ class SasRecordReader(split: InputSplit,
     lazy val readNext = {
 
       // Clear the current stored record.
-      currentRecordValue = new Array[Object](columnsCount.toInt)
+      currentRecordValue = new Array[Object](columnCount.toInt)
 
       // Read next record.
       val recordValue: Option[Array[Object]] = Option(sasFileReader.readNext())
 
       // Store the returned record.
-      if (!recordValue.isEmpty) {
+      if (recordValue.isDefined) {
         // copyToArray handles partially corrupted records
         recordValue.get.copyToArray(currentRecordValue)
         recordCount += 1
