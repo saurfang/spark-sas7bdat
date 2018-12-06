@@ -3,11 +3,11 @@
 - __Changed__: Upgrade Parso to 2.0.10.
 - __Fixed__: Incorrect reading of internally compressed SAS files. (See: #38)
 - __Added__: Extraction of SAS column labels as comments for Parquet/Hive.
-- __Added__: Ability to force SAS column names to lower case.
+- __Added__: Ability to force SAS column names to lowercase.
 - __Added__: Schema inference for Long, Decimal, Int, Float, Short. (Based on SAS column formatters)
 - __Added__: Ability to specify the maximum/minimum size of input splits.
 - __Added__: Timeout for schema inference (handles corrupt files)
-- __Improved__: Non-valid SAS files now throw errors.
+- __Improved__: Non-valid SAS files now throw errors on schema inference.
 - __Improved__: User provided schema is now honoured, if conversion to the provided type is possible.
 - __Removed__: Ability to provide jobConf in the implicit reader. (Instead use `SparkContext.hadoopConfiguration`)
 

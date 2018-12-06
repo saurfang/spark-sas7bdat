@@ -59,7 +59,7 @@ case class SasRelation protected[spark](
   @transient lazy val log = LogManager.getLogger(this.getClass.getName)
 
   // Automatically extract schema from file.
-  val schema = inferSchema(
+  val schema: StructType = inferSchema(
     extractLabel = extractLabel,
     forceLowercaseNames = forceLowercaseNames,
     inferDecimal = inferDecimal,
@@ -77,8 +77,8 @@ case class SasRelation protected[spark](
     val conf: Configuration = new Configuration(sqlContext.sparkContext.hadoopConfiguration)
 
     // Set min/max split sizes if provided.
-    if (!minSplitSize.isEmpty) {conf.setLong("mapred.min.split.size", minSplitSize.get)}
-    if (!maxSplitSize.isEmpty) {conf.setLong("mapred.max.split.size", maxSplitSize.get)}
+    if (minSplitSize.isDefined) {conf.setLong("mapred.min.split.size", minSplitSize.get)}
+    if (maxSplitSize.isDefined) {conf.setLong("mapred.max.split.size", maxSplitSize.get)}
 
     // Read an RDD with NullWritable keys, Array[Object] values, with SasInputFormat format.
     // Then use map to extract every value from the returned RDD of (key, value) tuples.

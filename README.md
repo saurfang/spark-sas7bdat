@@ -32,17 +32,17 @@ __NOTE:__ this package does not support writing sas7bdat files
 * `forceLowercaseNames` _(Default: `false`)_
   * Boolean: force column names to lower case
 * `inferDecimal` _(Default: `false`)_
-  * Boolean: infer numeric columns (with format width >0 and format precision >0), as _Decimal(Width, Precision)_
+  * Boolean: infer numeric columns _with format width >0 and format precision >0_, as _Decimal(Width, Precision)_
 * `inferDecimalScale` _(Default: `each column's format width`)_
   * Int: scale of inferred decimals
 * `inferFloat` _(Default: `false`)_
-  * Boolean: infer numeric columns (with <=4 bytes), as _Float_
+  * Boolean: infer numeric columns _with <=4 bytes_, as _Float_
 * `inferInt` _(Default: `false`)_
-  * Boolean: infer numeric columns (with <=4 bytes, format width >0 and format precision =0), as _Int_
+  * Boolean: infer numeric columns _with <=4 bytes, format width >0 and format precision =0_, as _Int_
 * `inferLong` _(Default: `false`)_
-  * Boolean: infer numeric columns (with <=8 bytes, format width >0 and format precision =0), as _Long_
+  * Boolean: infer numeric columns _with <=8 bytes, format width >0 and format precision =0_, as _Long_
 * `inferShort` _(Default: `false`)_
-  * Boolean: infer numeric columns (with <=2 bytes, format width >0 and format precision =0), as _Short_
+  * Boolean: infer numeric columns _with <=2 bytes, format width >0 and format precision =0_, as _Short_
 * `metadataTimeout` _(Default: `60`)_
   * Int: number of seconds to allow reading of file metadata _(stops corrupt files hanging)_
 * `minSplitSize` _(Default: `mapred.min.split.size`)_
@@ -50,9 +50,9 @@ __NOTE:__ this package does not support writing sas7bdat files
 * `maxSplitSize` _(Default: `mapred.max.split.size`)_
   * Long: maximum byte length of input splits, _(can be decreased to force higher parallelism)_
   
-__NOTE:__ the order of precedence for numeric type inference is: _Long_ -> _Int_ -> _Short_ -> _Decimal_ -> _Float_ -> _Double_
-
-__NOTE2:__ sas doesn’t have a concept of Long/Int/Short, instead it uses column formatters with 0 precision.
+__NOTE:__ 
+* the order of precedence for numeric type inference is: _Long_ -> _Int_ -> _Short_ -> _Decimal_ -> _Float_ -> _Double_
+* sas doesn’t have a concept of Long/Int/Short, instead people typically use column formatters with 0 precision
 
 ### Scala API
 ```scala
