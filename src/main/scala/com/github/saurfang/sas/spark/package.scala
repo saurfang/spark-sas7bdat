@@ -1,4 +1,4 @@
-// Copyright (C) 2015 Forest Fang.
+// Copyright (C) 2018 Forest Fang.
 // See the LICENCE.txt file distributed with this work for additional
 // information regarding copyright ownership.
 //
@@ -16,22 +16,25 @@
 
 package com.github.saurfang.sas
 
-import org.apache.hadoop.mapred.JobConf
-import org.apache.spark.sql.{DataFrame, SQLContext}
+import org.apache.spark.sql.{DataFrame, DataFrameReader, SQLContext}
 
 package object spark {
 
   /**
-   * Adds a method, `sasFile`, to SQLContext that allows reading SAS data.
-   */
+    * Adds a method, `sasFile`, to SQLContext that allows you to read sas files.
+    */
   implicit class SasContext(sqlContext: SQLContext) {
-    def sasFile(filePath: String,
-                conf: JobConf = new JobConf()): DataFrame = {
-      val sasRelation = SasRelation(
-        location = filePath,
-        conf = conf)(sqlContext)
+    def sasFile(filePath: String): DataFrame = {
+      val sasRelation = SasRelation(location = filePath)(sqlContext)
       sqlContext.baseRelationToDataFrame(sasRelation)
     }
+  }
+
+  /**
+    * Adds a method, `sas`, to DataFrameReader that allows you to read sas files.
+    */
+  implicit class SasDataFrameReader(reader: DataFrameReader) {
+    def sas: String => DataFrame = reader.format("com.github.saurfang.sas.spark").load
   }
 
 }

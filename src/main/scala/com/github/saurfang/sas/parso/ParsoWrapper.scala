@@ -1,4 +1,4 @@
-// Copyright (C) 2015 Forest Fang.
+// Copyright (C) 2018 Forest Fang.
 // See the LICENCE.txt file distributed with this work for additional
 // information regarding copyright ownership.
 //
@@ -23,65 +23,66 @@ import com.epam.parso.SasFileProperties
 import com.epam.parso.impl.SasFileParser
 import com.github.saurfang.sas.util.PrivateMethodExposer
 
+/**
+  * An object to expose private methods from com.epam.parso.impl.SasFileParser and com.epam.parso.impl.SasFileConstants.
+  */
 object ParsoWrapper {
-
-  def createSasFileParser(is: InputStream): SasFileParserWrapper = {
-    val builderClass = Class.forName("com.epam.parso.impl.SasFileParser$Builder")
-    val builderConstructor = builderClass.getDeclaredConstructors()(0)
-    builderConstructor.setAccessible(true)
-    val builderInstance = builderConstructor.newInstance()
-
-    val builderExposer = PrivateMethodExposer(builderInstance.asInstanceOf[AnyRef])
-
-    builderExposer('sasFileStream)(is)
-    val sasFileParser = builderExposer('build)()
-
-    new SasFileParserWrapper(sasFileParser.asInstanceOf[SasFileParser])
-  }
-
-  private val sasFileConstantsClass = Class.forName("com.epam.parso.impl.SasFileConstants")
-
-  lazy val PAGE_META_TYPE: Int = {
-    val field = sasFileConstantsClass.getDeclaredField("PAGE_META_TYPE")
-    field.setAccessible(true)
-    field.getInt(null)
-  }
 
   lazy val DATE_TIME_FORMAT_STRINGS: util.Set[String] = {
     val field = sasFileConstantsClass.getDeclaredField("DATE_TIME_FORMAT_STRINGS")
     field.setAccessible(true)
     field.get(null).asInstanceOf[util.Set[String]]
   }
-
   lazy val DATE_FORMAT_STRINGS: util.Set[String] = {
     val field = sasFileConstantsClass.getDeclaredField("DATE_FORMAT_STRINGS")
     field.setAccessible(true)
     field.get(null).asInstanceOf[util.Set[String]]
   }
-
   lazy val EPSILON: Double = {
     val field = sasFileConstantsClass.getDeclaredField("EPSILON")
     field.setAccessible(true)
     field.getDouble(null)
   }
 
+  // Read SAS file metadata constants specified by parso.
+  private val sasFileConstantsClass = Class.forName("com.epam.parso.impl.SasFileConstants")
+
+  // Define a method to build a SasFileParserWrapper
+  def createSasFileParser(inputStream: InputStream): SasFileParserWrapper = {
+
+    // Get an instance of SasFileParser.Builder
+    val builderClass = Class.forName("com.epam.parso.impl.SasFileParser$Builder")
+    val builderConstructor = builderClass.getDeclaredConstructors()(0)
+    builderConstructor.setAccessible(true)
+    val builderInstance = builderConstructor.newInstance()
+
+    // Get a private method exposer for the builder.
+    val builderExposer = PrivateMethodExposer(builderInstance.asInstanceOf[AnyRef])
+
+    // Build a sasFileParser from our input stream
+    builderExposer('sasFileStream)(inputStream)
+    val sasFileParser = builderExposer('build)()
+
+    new SasFileParserWrapper(sasFileParser.asInstanceOf[SasFileParser])
+  }
 }
 
 class SasFileParserWrapper(val sasFileParser: SasFileParser) {
 
-  private[this] val sasFileReaderPrivateExposer = PrivateMethodExposer(sasFileParser)
+  private[this] val sasFileParserPrivateExposer = PrivateMethodExposer(sasFileParser)
 
-  def getSasFileProperties: SasFileProperties = sasFileReaderPrivateExposer('getSasFileProperties)().asInstanceOf[SasFileProperties]
+  // Expose getSasFileProperties()
+  def getSasFileProperties(): SasFileProperties = {
+    sasFileParserPrivateExposer('getSasFileProperties)().asInstanceOf[SasFileProperties]
+  }
 
-  def currentPageBlockCount: Int = sasFileReaderPrivateExposer.get[Int]('currentPageBlockCount)
+  // Expose readNext()
+  def readNext(): Array[Object] = {
+    sasFileParserPrivateExposer('readNext)(null).asInstanceOf[Array[Object]]
+  }
 
-  def readNextPage(): Unit = sasFileReaderPrivateExposer('readNextPage)()
-
-  def readNext(): Array[Object] = sasFileReaderPrivateExposer('readNext)().asInstanceOf[Array[Object]]
-
-  def currentPageType: Int = sasFileReaderPrivateExposer.get[Int]('currentPageType)
-
-  def currentPageDataSubheaderPointers: java.util.List[_] = sasFileReaderPrivateExposer.
-    get[java.util.List[_]]('currentPageDataSubheaderPointers)
+  // Expose readNextPage()
+  def readNextPage(): Unit = {
+    sasFileParserPrivateExposer('readNextPage)()
+  }
 }
-
