@@ -214,4 +214,42 @@ class SasRelationSpec extends FlatSpec with Matchers with SharedSparkContext {
         row1.toSeq should ===(row2.toSeq)
     }
   }
+
+  "SASReltion" should "read compressed numeric SAS data exactly correct" in {
+
+    val sqlContext = new SQLContext(sc)
+    implicit val dblEquality = tolerantDoubleEquality(ParsoWrapper.EPSILON)
+
+    // Set configs to cause multiple partitions/splits.
+    val conf = sqlContext.sparkContext.hadoopConfiguration
+    conf.setLong("mapred.max.split.size", 2000000)
+
+    // Get the path for our test files.
+    val sasRandomPath = getClass.getResource("/random.sas7bdat.gz").getPath
+    val csvRandomPath = getClass.getResource("/random.csv").getPath
+
+    // Read Data
+    val sasRandomDF = sqlContext.sasFile(sasRandomPath).cache()
+    val csvRandomDF = {
+      sqlContext.read
+        .format("csv")
+        .option("header", "true")
+        .load(csvRandomPath)
+        .cache()
+    }
+
+    // Print the automatically inferred schema.
+    sasRandomDF.printSchema()
+    csvRandomDF.printSchema()
+
+    // Ensure that we read the correct number of rows.
+    sasRandomDF.count() should ===(1000000)
+
+    // Ensure we read the sas file correctly.
+    sasRandomDF.collect().zip(csvRandomDF.collect()).foreach {
+      case (row1, row2) =>
+        row1.getDouble(0) should ===(row2.getString(0).toDouble)
+        row1.getDouble(1).toLong should ===(row2.getString(1).toLong)
+    }
+  }
 }

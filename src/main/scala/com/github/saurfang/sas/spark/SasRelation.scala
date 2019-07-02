@@ -27,6 +27,7 @@ import org.apache.hadoop.fs.Path
 import org.apache.hadoop.io.NullWritable
 import org.apache.log4j.LogManager
 import org.apache.spark.rdd.RDD
+import org.apache.spark.sql.execution.datasources.CodecStreams
 import org.apache.spark.sql.{Row, SQLContext}
 import org.apache.spark.sql.sources.{BaseRelation, TableScan}
 import org.apache.spark.sql.types._
@@ -175,8 +176,7 @@ case class SasRelation protected[spark](
       // Open a reader so we can get the metadata.
       val conf = sqlContext.sparkContext.hadoopConfiguration
       val path = new Path(location)
-      val fs = path.getFileSystem(conf)
-      val inputStream = fs.open(path)
+      val inputStream = CodecStreams.createInputStreamWithCloseResource(conf, path)
       val sasFileReaderFuture = future {
         new SasFileReaderImpl(inputStream)
       }
