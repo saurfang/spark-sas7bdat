@@ -21,7 +21,7 @@ import java.io.IOException
 import com.github.saurfang.sas.parso.ParsoWrapper
 import org.apache.commons.io.input.CountingInputStream
 import org.apache.hadoop.fs.Path
-import org.apache.hadoop.io.compress.{CompressionCodecFactory, CompressionInputStream, SplittableCompressionCodec}
+import org.apache.hadoop.io.compress.CompressionCodecFactory
 import org.apache.hadoop.io.NullWritable
 import org.apache.hadoop.mapreduce.{InputSplit, RecordReader, TaskAttemptContext}
 import org.apache.hadoop.mapreduce.lib.input.FileSplit
