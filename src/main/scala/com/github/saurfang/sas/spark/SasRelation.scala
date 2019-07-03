@@ -25,6 +25,7 @@ import com.github.saurfang.sas.parso.ParsoWrapper
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.io.NullWritable
+import org.apache.hadoop.io.compress.CompressionCodecFactory
 import org.apache.log4j.LogManager
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.execution.datasources.CodecStreams
@@ -176,7 +177,11 @@ case class SasRelation protected[spark](
       // Open a reader so we can get the metadata.
       val conf = sqlContext.sparkContext.hadoopConfiguration
       val path = new Path(location)
-      val inputStream = CodecStreams.createInputStreamWithCloseResource(conf, path)
+      val fs = path.getFileSystem(conf)
+      val rawInputStream = fs.open(path)
+      val codec = Option(new CompressionCodecFactory(conf).getCodec(path))
+      val inputStream = codec.map(codec => codec.createInputStream(rawInputStream)).getOrElse(rawInputStream)
+
       val sasFileReaderFuture = future {
         new SasFileReaderImpl(inputStream)
       }

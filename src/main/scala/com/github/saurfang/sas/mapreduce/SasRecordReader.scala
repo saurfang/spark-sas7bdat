@@ -21,7 +21,7 @@ import java.io.IOException
 import com.github.saurfang.sas.parso.ParsoWrapper
 import org.apache.commons.io.input.CountingInputStream
 import org.apache.hadoop.fs.Path
-import org.apache.hadoop.io.compress.{CompressionCodecFactory, CompressionInputStream}
+import org.apache.hadoop.io.compress.{CompressionCodecFactory, CompressionInputStream, SplittableCompressionCodec}
 import org.apache.hadoop.io.NullWritable
 import org.apache.hadoop.mapreduce.{InputSplit, RecordReader, TaskAttemptContext}
 import org.apache.hadoop.mapreduce.lib.input.FileSplit
@@ -44,8 +44,8 @@ class SasRecordReader(split: InputSplit,
   private val jobConf = context.getConfiguration
 
   // Sanity-Check: Ensure file is not compressed.
-  private val codec = new CompressionCodecFactory(jobConf).getCodec(filePath)
-  private val splittable = codec == null
+  private val codec = Option(new CompressionCodecFactory(jobConf).getCodec(filePath))
+  private val isSplittable = codec.isEmpty
 
   // Initialize variables.
   private var recordCount: Long = 0
@@ -55,13 +55,8 @@ class SasRecordReader(split: InputSplit,
   private val fs = filePath.getFileSystem(jobConf)
   private val rawInputStream = fs.open(filePath)
 
-  private val fileInputStream = if (splittable) {
-      rawInputStream
-  } else {
-    val compressionCodecs = new CompressionCodecFactory(jobConf)
-    val codec = compressionCodecs.getCodec(filePath)
-    codec.createInputStream(rawInputStream)
-  }
+  private val fileInputStream = codec.map(codec => codec.createInputStream(rawInputStream)).getOrElse(rawInputStream)
+
   private val countingInputStream = new CountingInputStream(fileInputStream)
 
   // Initialize Parso SasFileParser.
@@ -73,19 +68,20 @@ class SasRecordReader(split: InputSplit,
   private val pageCount: Long = sasFileReader.getSasFileProperties.getPageCount
   private val columnCount: Long = sasFileReader.getSasFileProperties.getColumnsCount
   private val rowCount: Long = sasFileReader.getSasFileProperties.getRowCount
-  private val fileLength: Long = if (splittable) {
+  private val fileLength: Long = if (isSplittable) {
     fs.getFileStatus(filePath).getLen
   } else {
     headerLength + (pageLength * pageCount)
   }
 
   // Calculate initial split byte positions.
-  private var splitStart: Long = if (splittable) {
+  private var splitStart: Long = if (isSplittable) {
     fileSplit.getStart
   } else {
     0
   }
-  private var splitEnd: Long = if (splittable) {
+
+  private var splitEnd: Long = if (isSplittable) {
     splitStart + fileSplit.getLength
   } else {
     splitStart + fileLength
