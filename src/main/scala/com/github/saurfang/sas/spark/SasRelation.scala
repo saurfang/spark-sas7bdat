@@ -25,8 +25,10 @@ import com.github.saurfang.sas.parso.ParsoWrapper
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.io.NullWritable
+import org.apache.hadoop.io.compress.CompressionCodecFactory
 import org.apache.log4j.LogManager
 import org.apache.spark.rdd.RDD
+import org.apache.spark.sql.execution.datasources.CodecStreams
 import org.apache.spark.sql.{Row, SQLContext}
 import org.apache.spark.sql.sources.{BaseRelation, TableScan}
 import org.apache.spark.sql.types._
@@ -176,7 +178,10 @@ case class SasRelation protected[spark](
       val conf = sqlContext.sparkContext.hadoopConfiguration
       val path = new Path(location)
       val fs = path.getFileSystem(conf)
-      val inputStream = fs.open(path)
+      val rawInputStream = fs.open(path)
+      val codec = Option(new CompressionCodecFactory(conf).getCodec(path))
+      val inputStream = codec.map(codec => codec.createInputStream(rawInputStream)).getOrElse(rawInputStream)
+
       val sasFileReaderFuture = future {
         new SasFileReaderImpl(inputStream)
       }

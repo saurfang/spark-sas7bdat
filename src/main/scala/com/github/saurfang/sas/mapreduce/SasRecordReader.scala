@@ -20,11 +20,13 @@ import java.io.IOException
 
 import com.github.saurfang.sas.parso.ParsoWrapper
 import org.apache.commons.io.input.CountingInputStream
+import org.apache.hadoop.fs.Path
 import org.apache.hadoop.io.compress.CompressionCodecFactory
 import org.apache.hadoop.io.NullWritable
 import org.apache.hadoop.mapreduce.{InputSplit, RecordReader, TaskAttemptContext}
 import org.apache.hadoop.mapreduce.lib.input.FileSplit
 import org.apache.log4j.LogManager
+import org.apache.spark.sql.execution.datasources.CodecStreams
 
 /**
   * A [[RecordReader]] for [[SasInputFormat]].
@@ -42,33 +44,48 @@ class SasRecordReader(split: InputSplit,
   private val jobConf = context.getConfiguration
 
   // Sanity-Check: Ensure file is not compressed.
-  private val codec = new CompressionCodecFactory(jobConf).getCodec(filePath)
-  if (codec != null) {
-    throw new IOException("SASRecordReader does not support reading compressed files.")
-  }
+  private val codec = Option(new CompressionCodecFactory(jobConf).getCodec(filePath))
+  private val isSplittable = codec.isEmpty
 
   // Initialize variables.
   private var recordCount: Long = 0
   private var currentRecordValue: Array[Object] = _
 
-  // Initialize CountingInputStream.
+  // Initialize InputStream.
   private val fs = filePath.getFileSystem(jobConf)
-  private val fileInputStream = fs.open(filePath)
+  private val rawInputStream = fs.open(filePath)
+
+  private val fileInputStream = codec.map(codec => codec.createInputStream(rawInputStream)).getOrElse(rawInputStream)
+
   private val countingInputStream = new CountingInputStream(fileInputStream)
 
   // Initialize Parso SasFileParser.
   private val sasFileReader = ParsoWrapper.createSasFileParser(countingInputStream)
 
   // Extract static SAS file metadata.
-  private val fileLength: Long = fs.getFileStatus(filePath).getLen
   private val headerLength: Long = sasFileReader.getSasFileProperties.getHeaderLength
   private val pageLength: Long = sasFileReader.getSasFileProperties.getPageLength
+  private val pageCount: Long = sasFileReader.getSasFileProperties.getPageCount
   private val columnCount: Long = sasFileReader.getSasFileProperties.getColumnsCount
   private val rowCount: Long = sasFileReader.getSasFileProperties.getRowCount
+  private val fileLength: Long = if (isSplittable) {
+    fs.getFileStatus(filePath).getLen
+  } else {
+    headerLength + (pageLength * pageCount)
+  }
 
   // Calculate initial split byte positions.
-  private var splitStart: Long = fileSplit.getStart
-  private var splitEnd: Long = splitStart + fileSplit.getLength
+  private var splitStart: Long = if (isSplittable) {
+    fileSplit.getStart
+  } else {
+    0
+  }
+
+  private var splitEnd: Long = if (isSplittable) {
+    splitStart + fileSplit.getLength
+  } else {
+    splitStart + fileLength
+  }
 
   // Log file information
   log.info(s"Reading file of length $fileLength between $splitStart and $splitEnd. ($rowCount rows, $columnCount columns)")

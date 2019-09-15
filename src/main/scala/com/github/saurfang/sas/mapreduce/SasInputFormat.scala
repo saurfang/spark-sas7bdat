@@ -35,7 +35,10 @@ class SasInputFormat extends FileInputFormat[NullWritable, Array[Object]] {
   }
 
   override def isSplitable(context: JobContext, filename: Path): Boolean = {
-    new CompressionCodecFactory(context.getConfiguration).getCodec(filename) == null
+    // Sas requires reading page boundaries, and SplittableCompressionCodec does not support
+    // seeking, and makes InputSplits that do not contain the sas block. So for any externally
+    // compressed sas file, it must be processed in a single InputSplit.
+    Option(new CompressionCodecFactory(context.getConfiguration).getCodec(filename)).isEmpty
   }
 
   // Our splitting logic requires each internal SAS page to occur in only one split.
