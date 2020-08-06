@@ -6,8 +6,8 @@ A library for reading SAS data (.sas7bdat) with [Spark](http://spark.apache.org/
 
 ## Requirements:
 
-- [Spark 1.4+ or 2.0+](https://spark.apache.org/downloads.html)
-- [Parso 2.0.10](https://mvnrepository.com/artifact/com.epam/parso/2.0.10)
+- [Spark 2.0+ or 3.0+](https://spark.apache.org/downloads.html)
+- [Parso 2.0.11](https://mvnrepository.com/artifact/com.epam/parso/2.0.11)
 
 ## Download:
 
@@ -103,9 +103,9 @@ write.df(df, path = "newcars.csv", source = "csv", header = TRUE)
 SAS data can be queried in pure SQL by registering the data as a (temporary) table.
 
 ```sql
-CREATE TEMPORARY TABLE cars
+CREATE TEMPORARY VIEW cars
 USING com.github.saurfang.sas.spark
-OPTIONS (path "cars.sas7bdat")
+OPTIONS (path="cars.sas7bdat")
 ```
 
 ### SAS Export Runner
@@ -123,7 +123,7 @@ cluster, you can always run it in local mode and take advantage of multi-core.
 ### Spark Shell
 
 ```bash
-spark-shell --master local[4] --packages saurfang:spark-sas7bdat:2.1.0-s_2.11
+spark-shell --master local[4] --packages saurfang:spark-sas7bdat:3.0.0-s_2.12
 ```
 
 ## Caveats

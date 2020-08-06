@@ -1,23 +1,40 @@
 language: scala
-scala:
-  - 2.10.7
-  - 2.11.12
-jdk:
-  - oraclejdk9
-  - openjdk8
-sudo: false
-script:
-  - sbt -jvm-opts travis/jvmopts.compile compile
-  - sbt -jvm-opts travis/jvmopts.test test
-  - sbt -jvm-opts travis/jvmopts.test scalastyle
 
-# These directories are cached to S3 at the end of the build
+sudo: false
+
 cache:
+  # these directories are cached to S3 at the end of the build
   directories:
-    - $HOME/.ivy2/cache
     - $HOME/.sbt
+    - $HOME/.ivy2/cache
+
+matrix:
+  include:
+    - name: Spark 2.4.6
+      env: SPARK_VERSION=2.4.6
+      scala:
+        - 2.11.12
+      jdk:
+        - openjdk8
+    - name: Spark 3.0.0 (Java 8)
+      env: SPARK_VERSION=3.0.0
+      scala:
+        - 2.12.11
+      jdk:
+        - openjdk8
+    - name: Spark 3.0.0 (Java 11)
+      env: SPARK_VERSION=3.0.0
+      scala:
+        - 2.12.11
+      jdk:
+        - openjdk11
+
+script:
+  - sbt -jvm-opts travis/jvmopts.test    ++$TRAVIS_SCALA_VERSION -Dspark.version=$SPARK_VERSION scalastyle
+  - sbt -jvm-opts travis/jvmopts.test    ++$TRAVIS_SCALA_VERSION -Dspark.version=$SPARK_VERSION test
+  - sbt -jvm-opts travis/jvmopts.compile ++$TRAVIS_SCALA_VERSION -Dspark.version=$SPARK_VERSION assembly
 
 before_cache:
-  # Cleanup the cached directories to avoid unnecessary cache updates
-  - find $HOME/.ivy2/cache -name "ivydata-*.properties" -print -delete
-  - find $HOME/.sbt        -name "*.lock"               -print -delete
+  # cleanup the cached directories to avoid unnecessary cache updates
+  - find $HOME/.ivy2 -name "ivydata-*.properties" -print -delete
+  - find $HOME/.sbt  -name "*.lock"               -print -delete
