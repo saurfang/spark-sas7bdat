@@ -13,6 +13,11 @@ A library for reading SAS data (.sas7bdat) with [Spark](http://spark.apache.org/
 
 The latest jar can be downloaded from [spark-packages](http://spark-packages.org/package/saurfang/spark-sas7bdat).
 
+| Version      | Scala Version | Spark Version |
+| ------------ | ------------- | ------------- |
+| 3.0.0-s_2.11 | 2.11.x        | 2.x.x         |
+| 3.0.0-s_2.12 | 2.12.x        | 3.0.x         |
+
 ## Features:
 
 - This package allows reading SAS files from local and distributed filesystems, into Spark DataFrames.
