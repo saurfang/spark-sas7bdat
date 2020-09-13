@@ -1,3 +1,8 @@
+## 3.0.0
+
+- **Changed**: Upgrade Parso to 2.0.11.
+- **Changed**: Support Spark 3.x / Scala 2.12.x. (#59 Thanks @thesuperzapper)
+
 ## 2.1.0
 
 - **Changed**: Upgrade Parso to 2.0.10.
