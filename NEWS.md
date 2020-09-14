@@ -2,6 +2,7 @@
 
 - **Changed**: Upgrade Parso to 2.0.11.
 - **Changed**: Support Spark 3.x / Scala 2.12.x. (#59 Thanks @thesuperzapper)
+- **Added**: Support for externally compressed sas7bdat files. (#50 Thanks @thadeusb)
 
 ## 2.1.0
 
