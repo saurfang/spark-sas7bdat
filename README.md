@@ -15,7 +15,7 @@ The latest jar can be downloaded from [spark-packages](http://spark-packages.org
 
 | Version      | Scala Version | Spark Version |
 | ------------ | ------------- | ------------- |
-| 3.0.0-s_2.11 | 2.11.x        | 2.x.x         |
+| 3.0.0-s_2.11 | 2.11.x        | 2.4.x         |
 | 3.0.0-s_2.12 | 2.12.x        | 3.0.x         |
 
 ## Features:
