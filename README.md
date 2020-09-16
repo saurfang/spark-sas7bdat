@@ -145,4 +145,5 @@ spark-shell --master local[4] --packages saurfang:spark-sas7bdat:3.0.0-s_2.12
 
 ## Acknowledgements
 
-This project would not be possible without [parso](https://github.com/epam/parso/) continued improvements and generous contributions from @mulya, @thesuperzapper, and many others.
+This project would not be possible without [parso](https://github.com/epam/parso/) continued improvements and generous contributions from @mulya, @thesuperzapper, and many others. We are hornored to be a recipient of [2020 WiseWithData ELEVATE Awards](https://www.wisewithdata.com/2020/09/elevate-humanitarian-oss-award-winners/) and appreciate their generous donations.
+
