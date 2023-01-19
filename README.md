@@ -7,7 +7,7 @@ A library for reading SAS data (.sas7bdat) with [Spark](http://spark.apache.org/
 ## Requirements:
 
 - [Spark 2.0+ or 3.0+](https://spark.apache.org/downloads.html)
-- [Parso 2.0.11](https://mvnrepository.com/artifact/com.epam/parso/2.0.11)
+- [Parso 2.0.14](https://mvnrepository.com/artifact/com.epam/parso/2.0.14)
 
 ## Download:
 
