@@ -11,7 +11,7 @@ javacOptions ++= Seq("-source", "1.8", "-target", "1.8")
 
 libraryDependencies ++= Seq(
   // main
-  "com.epam" % "parso" % "2.0.11",
+  "com.epam" % "parso" % "2.0.14",
   "org.apache.logging.log4j" %% "log4j-api-scala" % "12.0",
 
   // testing
