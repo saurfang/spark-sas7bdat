@@ -18,10 +18,11 @@ package com.github.saurfang.sas.parso
 
 import java.io.InputStream
 import java.util
-
 import com.epam.parso.SasFileProperties
 import com.epam.parso.impl.SasFileParser
 import com.github.saurfang.sas.util.PrivateMethodExposer
+
+import java.lang.reflect.Constructor
 
 /**
   * An object to expose private methods from com.epam.parso.impl.SasFileParser and com.epam.parso.impl.SasFileConstants.
@@ -49,10 +50,11 @@ object ParsoWrapper {
 
   // Define a method to build a SasFileParserWrapper
   def createSasFileParser(inputStream: InputStream): SasFileParserWrapper = {
+    def getNoParamConstructor(getDeclaredConstructors: Array[Constructor[_]]): Constructor[_] = getDeclaredConstructors.find(_.getParameterCount ==0).getOrElse(throw new InstantiationException("Can't find empty constructor()"))
 
     // Get an instance of SasFileParser.Builder
     val builderClass = Class.forName("com.epam.parso.impl.SasFileParser$Builder")
-    val builderConstructor = builderClass.getDeclaredConstructors()(0)
+    val builderConstructor = getNoParamConstructor(builderClass.getDeclaredConstructors())
     builderConstructor.setAccessible(true)
     val builderInstance = builderConstructor.newInstance()
 
