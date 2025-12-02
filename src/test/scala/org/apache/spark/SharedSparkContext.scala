@@ -28,6 +28,14 @@ trait SharedSparkContext extends BeforeAndAfterAll {
   def sc: SparkContext = _sc
 
   override def beforeAll() {
+    conf.set("spark.ui.enabled", "false")
+    conf.set("spark.driver.memory", "3g")
+    conf.set("spark.executor.memory", "3g")
+    conf.set("spark.driver.maxResultSize", "2g")
+    conf.set("spark.testing.memory", "2147480000")
+    conf.set("spark.network.timeout", "600s")
+    conf.set("spark.sql.shuffle.partitions", "4")
+    conf.set("spark.sql.parquet.compression.codec", "gzip")
     _sc = new SparkContext("local[4]", "test", conf)
     super.beforeAll()
   }

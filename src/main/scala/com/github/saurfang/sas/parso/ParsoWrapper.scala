@@ -20,7 +20,7 @@ import java.io.InputStream
 import java.util
 
 import com.epam.parso.SasFileProperties
-import com.epam.parso.impl.SasFileParser
+import com.epam.parso.impl.{DateTimeConstants, SasFileConstants, SasFileParser}
 import com.github.saurfang.sas.util.PrivateMethodExposer
 
 /**
@@ -28,42 +28,17 @@ import com.github.saurfang.sas.util.PrivateMethodExposer
   */
 object ParsoWrapper {
 
-  lazy val DATE_TIME_FORMAT_STRINGS: util.Set[String] = {
-    val field = sasFileConstantsClass.getDeclaredField("DATE_TIME_FORMAT_STRINGS")
-    field.setAccessible(true)
-    field.get(null).asInstanceOf[util.Set[String]]
-  }
-  lazy val DATE_FORMAT_STRINGS: util.Set[String] = {
-    val field = sasFileConstantsClass.getDeclaredField("DATE_FORMAT_STRINGS")
-    field.setAccessible(true)
-    field.get(null).asInstanceOf[util.Set[String]]
-  }
-  lazy val EPSILON: Double = {
-    val field = sasFileConstantsClass.getDeclaredField("EPSILON")
-    field.setAccessible(true)
-    field.getDouble(null)
-  }
-
-  // Read SAS file metadata constants specified by parso.
-  private val sasFileConstantsClass = Class.forName("com.epam.parso.impl.SasFileConstants")
+  lazy val DATE_TIME_FORMAT_STRINGS: util.Set[String] = DateTimeConstants.DATETIME_FORMAT_STRINGS.keySet()
+  lazy val DATE_FORMAT_STRINGS: util.Set[String] = DateTimeConstants.DATE_FORMAT_STRINGS.keySet()
+  lazy val EPSILON: Double = SasFileConstants.EPSILON
 
   // Define a method to build a SasFileParserWrapper
   def createSasFileParser(inputStream: InputStream): SasFileParserWrapper = {
 
-    // Get an instance of SasFileParser.Builder
-    val builderClass = Class.forName("com.epam.parso.impl.SasFileParser$Builder")
-    val builderConstructor = builderClass.getDeclaredConstructors()(0)
-    builderConstructor.setAccessible(true)
-    val builderInstance = builderConstructor.newInstance()
-
-    // Get a private method exposer for the builder.
-    val builderExposer = PrivateMethodExposer(builderInstance.asInstanceOf[AnyRef])
-
     // Build a sasFileParser from our input stream
-    builderExposer('sasFileStream)(inputStream)
-    val sasFileParser = builderExposer('build)()
+    val sasFileParser = new SasFileParser.Builder(inputStream).build()
 
-    new SasFileParserWrapper(sasFileParser.asInstanceOf[SasFileParser])
+    new SasFileParserWrapper(sasFileParser)
   }
 }
 
@@ -73,12 +48,12 @@ class SasFileParserWrapper(val sasFileParser: SasFileParser) {
 
   // Expose getSasFileProperties()
   def getSasFileProperties(): SasFileProperties = {
-    sasFileParserPrivateExposer('getSasFileProperties)().asInstanceOf[SasFileProperties]
+    sasFileParser.getSasFileProperties()
   }
 
   // Expose readNext()
   def readNext(): Array[Object] = {
-    sasFileParserPrivateExposer('readNext)(null).asInstanceOf[Array[Object]]
+    sasFileParser.readNext().asInstanceOf[Array[Object]]
   }
 
   // Expose readNextPage()
