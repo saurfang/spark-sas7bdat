@@ -43,7 +43,7 @@ matrix:
 script:
   - sbt -jvm-opts travis/jvmopts.test    ++$TRAVIS_SCALA_VERSION -Dspark.version=$SPARK_VERSION scalastyle
   - sbt -jvm-opts travis/jvmopts.test    ++$TRAVIS_SCALA_VERSION -Dspark.version=$SPARK_VERSION test
-  - sbt -jvm-opts travis/jvmopts.compile ++$TRAVIS_SCALA_VERSION -Dspark.version=$SPARK_VERSION assembly
+  - sbt -jvm-opts travis/jvmopts.compile ++$TRAVIS_SCALA_VERSION -Dspark.version=$SPARK_VERSION package
 
 before_cache:
   # cleanup the cached directories to avoid unnecessary cache updates
