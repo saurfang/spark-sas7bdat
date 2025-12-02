@@ -58,3 +58,8 @@ fork in Test := true
 
 //skip test during assembly
 test in assembly := {}
+assemblyMergeStrategy in assembly := {
+  case PathList("META-INF", "versions", _ @ _*) => MergeStrategy.first
+  case PathList("META-INF", "MANIFEST.MF") => MergeStrategy.discard
+  case x => (assemblyMergeStrategy in assembly).value(x)
+}
