@@ -6,17 +6,20 @@ A library for reading SAS data (.sas7bdat) with [Spark](http://spark.apache.org/
 
 ## Requirements:
 
-- [Spark 2.0+ or 3.0+](https://spark.apache.org/downloads.html)
+- [Spark 2.4.x, 3.0.x, or 3.5.x](https://spark.apache.org/downloads.html) (see Scala/Spark version mapping below)
 - [Parso 2.0.14](https://mvnrepository.com/artifact/com.epam/parso/2.0.14)
 
 ## Download:
 
 The latest jar can be downloaded from [spark-packages](http://spark-packages.org/package/saurfang/spark-sas7bdat).
 
+Updated: 2025-12-02T14:06:04.539Z
+
 | Version      | Scala Version | Spark Version |
 | ------------ | ------------- | ------------- |
 | 3.0.0-s_2.11 | 2.11.x        | 2.4.x         |
 | 3.0.0-s_2.12 | 2.12.x        | 3.0.x         |
+| 3.0.0-s_2.13 | 2.13.x        | 3.5.x         |
 
 ## Features:
 
@@ -128,7 +131,7 @@ cluster, you can always run it in local mode and take advantage of multi-core.
 ### Spark Shell
 
 ```bash
-spark-shell --master local[4] --packages saurfang:spark-sas7bdat:3.0.0-s_2.12
+spark-shell --master local[4] --packages saurfang:spark-sas7bdat:3.0.0-s_2.13
 ```
 
 ## Caveats

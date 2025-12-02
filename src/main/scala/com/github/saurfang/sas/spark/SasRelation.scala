@@ -33,7 +33,7 @@ import org.apache.spark.sql.{Row, SQLContext}
 import org.apache.spark.sql.sources.{BaseRelation, TableScan}
 import org.apache.spark.sql.types._
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 import scala.concurrent._
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -182,14 +182,14 @@ case class SasRelation protected[spark](
       val codec = Option(new CompressionCodecFactory(conf).getCodec(path))
       val inputStream = codec.map(codec => codec.createInputStream(rawInputStream)).getOrElse(rawInputStream)
 
-      val sasFileReaderFuture = future {
+      val sasFileReaderFuture = Future {
         new SasFileReaderImpl(inputStream)
       }
 
       // Corrupt files hang, so we need to time out.
       val sasFileReader: SasFileReaderImpl = {
         try {
-          Await.result(sasFileReaderFuture, metadataTimeout seconds)
+          Await.result(sasFileReaderFuture, metadataTimeout.seconds)
         } catch {
           case e: TimeoutException => throw new TimeoutException(s"Timed out after $metadataTimeout sec while " +
             s"reading file metadata, file might be corrupt. (Change timeout with 'metadataTimeout' paramater)")
@@ -207,7 +207,7 @@ case class SasRelation protected[spark](
       val DATE_TIME_FORMAT_STRINGS = ParsoWrapper.DATE_TIME_FORMAT_STRINGS
 
       // Create a buffer of ShemaFields corresponding to the SAS metadata.
-      val schemaFields = sasFileReader.getColumns.map { column =>
+      val schemaFields = sasFileReader.getColumns.asScala.map { column =>
 
         // Retrieve general info about current column.
         val columnClass: Class[_] = column.getType
@@ -268,7 +268,7 @@ case class SasRelation protected[spark](
 
       }
       inputStream.close()
-      StructType(schemaFields)
+      StructType(schemaFields.toSeq)
     }
   }
 }

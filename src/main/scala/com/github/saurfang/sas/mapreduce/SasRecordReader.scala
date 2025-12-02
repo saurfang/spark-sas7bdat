@@ -19,6 +19,7 @@ package com.github.saurfang.sas.mapreduce
 import java.io.IOException
 
 import com.github.saurfang.sas.parso.ParsoWrapper
+import org.apache.commons.compress.compressors.bzip2.BZip2CompressorInputStream
 import org.apache.commons.io.input.CountingInputStream
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.io.compress.CompressionCodecFactory
@@ -55,7 +56,14 @@ class SasRecordReader(split: InputSplit,
   private val fs = filePath.getFileSystem(jobConf)
   private val rawInputStream = fs.open(filePath)
 
-  private val fileInputStream = codec.map(codec => codec.createInputStream(rawInputStream)).getOrElse(rawInputStream)
+  private val fileInputStream = codec.map {
+    // Hadoop's BZip2 codec occasionally over-reads into the page buffer on ARM,
+    // causing IndexOutOfBounds. Use the Apache commons implementation instead.
+    case c if c.getDefaultExtension == ".bz2" =>
+      new BZip2CompressorInputStream(rawInputStream, true)
+    case c =>
+      c.createInputStream(rawInputStream)
+  }.getOrElse(rawInputStream)
 
   private val countingInputStream = new CountingInputStream(fileInputStream)
 
@@ -119,12 +127,12 @@ class SasRecordReader(split: InputSplit,
   }
 
   // Seek input stream. (Don't seek if this is the first split, as it has already read past metadata)
-  if (fileInputStream.getPos != splitStart && splitStart > 0) {
+  if (isSplittable && rawInputStream.getPos != splitStart && splitStart > 0) {
 
-    val originalPos = fileInputStream.getPos
+    val originalPos = rawInputStream.getPos
 
     // Shift fileInputStream to start of split.
-    fileInputStream.seek(splitStart)
+    rawInputStream.seek(splitStart)
     log.info(s"Shifted fileInputStream to $splitStart offset from $originalPos.")
 
     // Reset Byte Counter.

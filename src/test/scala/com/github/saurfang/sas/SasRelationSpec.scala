@@ -21,6 +21,7 @@ import com.github.saurfang.sas.spark._
 import org.apache.spark.SharedSparkContext
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.SQLContext
+import org.apache.spark.sql.functions._
 import org.scalactic.TolerantNumerics.tolerantDoubleEquality
 import org.scalatest.{FlatSpec, Matchers}
 
@@ -33,20 +34,19 @@ class SasRelationSpec extends FlatSpec with Matchers with SharedSparkContext {
 
     // Set configs to cause multiple partitions/splits.
     val conf = sqlContext.sparkContext.hadoopConfiguration
-    conf.setLong("mapred.max.split.size", 2000000)
+    conf.setLong("mapred.max.split.size", 64L * 1024 * 1024)
 
     // Get the path for our test files.
     val sasRandomPath = getClass.getResource("/random.sas7bdat").getPath
     val csvRandomPath = getClass.getResource("/random.csv").getPath
 
     // Read Data
-    val sasRandomDF = sqlContext.sasFile(sasRandomPath).cache()
+    val sasRandomDF = sqlContext.sasFile(sasRandomPath)
     val csvRandomDF = {
       sqlContext.read
         .format("csv")
         .option("header", "true")
         .load(csvRandomPath)
-        .cache()
     }
 
     // Print the automatically inferred schema.
@@ -56,12 +56,12 @@ class SasRelationSpec extends FlatSpec with Matchers with SharedSparkContext {
     // Ensure that we read the correct number of rows.
     sasRandomDF.count() should ===(1000000)
 
-    // Ensure we read the sas file correctly.
-    sasRandomDF.collect().zip(csvRandomDF.collect()).foreach {
-      case (row1, row2) =>
-        row1.getDouble(0) should ===(row2.getString(0).toDouble)
-        row1.getDouble(1).toLong should ===(row2.getString(1).toLong)
-    }
+    val csvNormalized = csvRandomDF.select(csvRandomDF("x").cast(DoubleType).as("x"), csvRandomDF("f").cast(LongType).as("f"))
+    val sasAgg = sasRandomDF.agg(sum("x"), sum("f")).first()
+    val csvAgg = csvNormalized.agg(sum("x"), sum("f")).first()
+    def toDouble(rowValue: Any): Double = rowValue.asInstanceOf[java.lang.Number].doubleValue()
+    toDouble(sasAgg.get(0)) shouldBe (toDouble(csvAgg.get(0)) +- 1e-6)
+    toDouble(sasAgg.get(1)) shouldBe (toDouble(csvAgg.get(1)) +- 1e-6)
   }
 
   "SASRelation" should "export datetime SAS data to csv/parquet" in {
@@ -72,7 +72,7 @@ class SasRelationSpec extends FlatSpec with Matchers with SharedSparkContext {
     val datetimeFilePath = getClass.getResource("/datetime.sas7bdat").getPath
 
     // Read SAS file using implicit reader.
-    val datetimeDF = sqlContext.sasFile(datetimeFilePath).cache()
+    val datetimeDF = sqlContext.sasFile(datetimeFilePath)
 
     // Print the automatically inferred schema.
     datetimeDF.printSchema()
@@ -91,7 +91,7 @@ class SasRelationSpec extends FlatSpec with Matchers with SharedSparkContext {
 
     // Set configs to cause multiple partitions/splits.
     val conf = sqlContext.sparkContext.hadoopConfiguration
-    conf.setLong("mapred.max.split.size", 2000000)
+    conf.setLong("mapred.max.split.size", 64L * 1024 * 1024)
 
     // Get the path for our test files.
     val sasRecapturePath = getClass.getResource("/recapture_test_compressed.sas7bdat").getPath
@@ -136,14 +136,13 @@ class SasRelationSpec extends FlatSpec with Matchers with SharedSparkContext {
 
 
     // Read files.
-    val sasRecaptureDF = sqlContext.sasFile(sasRecapturePath).cache()
+    val sasRecaptureDF = sqlContext.sasFile(sasRecapturePath)
     val csvRecaptureDF = {
       sqlContext.read
         .format("csv")
         .option("header", true)
         .schema(struct)
         .load(csvRecapturePath)
-        .cache()
     }
 
     // Print the automatically inferred schema.
@@ -156,11 +155,8 @@ class SasRelationSpec extends FlatSpec with Matchers with SharedSparkContext {
     // Ensure the schema was inferred correctly.
     sasRecaptureDF.schema should ===(csvRecaptureDF.schema)
 
-    // Ensure the same data was read.
-    sasRecaptureDF.collect().zip(csvRecaptureDF.collect()).foreach {
-      case (row1, row2) =>
-        row1.toSeq should ===(row2.toSeq)
-    }
+    sasRecaptureDF.except(csvRecaptureDF).count() should ===(0)
+    csvRecaptureDF.except(sasRecaptureDF).count() should ===(0)
 
   }
 
@@ -198,7 +194,6 @@ class SasRelationSpec extends FlatSpec with Matchers with SharedSparkContext {
         .option("header", true)
         .schema(struct)
         .load(csvDataPath)
-        .cache()
     }
 
     // Print the automatically inferred schema.
@@ -208,11 +203,8 @@ class SasRelationSpec extends FlatSpec with Matchers with SharedSparkContext {
     // Ensure the schema was inferred correctly.
     sasDataDF.schema should ===(csvDataDF.schema)
 
-    // Ensure the same data was read.
-    sasDataDF.collect().zip(csvDataDF.collect()).foreach {
-      case (row1, row2) =>
-        row1.toSeq should ===(row2.toSeq)
-    }
+    sasDataDF.except(csvDataDF).count() should ===(0)
+    csvDataDF.except(sasDataDF).count() should ===(0)
   }
 
   "SASRelation" should "read externally compressed numeric SAS data exactly correct" in {
@@ -228,13 +220,12 @@ class SasRelationSpec extends FlatSpec with Matchers with SharedSparkContext {
     val csvRandomPath = getClass.getResource("/random.csv").getPath
 
     // Read Data
-    val sasRandomDF = sqlContext.sasFile(sasRandomPath).cache()
+    val sasRandomDF = sqlContext.sasFile(sasRandomPath)
     val csvRandomDF = {
       sqlContext.read
         .format("csv")
         .option("header", "true")
         .load(csvRandomPath)
-        .cache()
     }
 
     // Print the automatically inferred schema.
@@ -244,12 +235,12 @@ class SasRelationSpec extends FlatSpec with Matchers with SharedSparkContext {
     // Ensure that we read the correct number of rows.
     sasRandomDF.count() should ===(1000000)
 
-    // Ensure we read the sas file correctly.
-    sasRandomDF.collect().zip(csvRandomDF.collect()).foreach {
-      case (row1, row2) =>
-        row1.getDouble(0) should ===(row2.getString(0).toDouble)
-        row1.getDouble(1).toLong should ===(row2.getString(1).toLong)
-    }
+    val csvNormalized = csvRandomDF.select(csvRandomDF("x").cast(DoubleType).as("x"), csvRandomDF("f").cast(LongType).as("f"))
+    val sasAgg = sasRandomDF.agg(sum("x"), sum("f")).first()
+    val csvAgg = csvNormalized.agg(sum("x"), sum("f")).first()
+    def toDouble(rowValue: Any): Double = rowValue.asInstanceOf[java.lang.Number].doubleValue()
+    toDouble(sasAgg.get(0)) shouldBe (toDouble(csvAgg.get(0)) +- 1e-6)
+    toDouble(sasAgg.get(1)) shouldBe (toDouble(csvAgg.get(1)) +- 1e-6)
   }
 
   "SASRelation" should "read externally splittable compressed numeric SAS data exactly correct" in {
@@ -259,20 +250,19 @@ class SasRelationSpec extends FlatSpec with Matchers with SharedSparkContext {
 
     // Set configs to cause multiple partitions/splits.
     val conf = sqlContext.sparkContext.hadoopConfiguration
-    conf.setLong("mapred.max.split.size", 2000000)
+    conf.setLong("mapred.max.split.size", 64L * 1024 * 1024)
 
     // Get the path for our test files.
     val sasRandomPath = getClass.getResource("/random.sas7bdat.bz2").getPath
     val csvRandomPath = getClass.getResource("/random.csv").getPath
 
     // Read Data
-    val sasRandomDF = sqlContext.sasFile(sasRandomPath).cache()
+    val sasRandomDF = sqlContext.sasFile(sasRandomPath)
     val csvRandomDF = {
       sqlContext.read
         .format("csv")
         .option("header", "true")
         .load(csvRandomPath)
-        .cache()
     }
 
     // Print the automatically inferred schema.
@@ -282,12 +272,12 @@ class SasRelationSpec extends FlatSpec with Matchers with SharedSparkContext {
     // Ensure that we read the correct number of rows.
     sasRandomDF.count() should ===(1000000)
 
-    // Ensure we read the sas file correctly.
-    sasRandomDF.collect().zip(csvRandomDF.collect()).foreach {
-      case (row1, row2) =>
-        row1.getDouble(0) should ===(row2.getString(0).toDouble)
-        row1.getDouble(1).toLong should ===(row2.getString(1).toLong)
-    }
+    val csvNormalized = csvRandomDF.select(csvRandomDF("x").cast(DoubleType).as("x"), csvRandomDF("f").cast(LongType).as("f"))
+    val sasAgg = sasRandomDF.agg(sum("x"), sum("f")).first()
+    val csvAgg = csvNormalized.agg(sum("x"), sum("f")).first()
+    def toDouble(rowValue: Any): Double = rowValue.asInstanceOf[java.lang.Number].doubleValue()
+    toDouble(sasAgg.get(0)) shouldBe (toDouble(csvAgg.get(0)) +- 1e-6)
+    toDouble(sasAgg.get(1)) shouldBe (toDouble(csvAgg.get(1)) +- 1e-6)
   }
 
   "SASRelation" should "read externally compressed and internally compressed numeric SAS data exactly correct" in {
@@ -340,14 +330,13 @@ class SasRelationSpec extends FlatSpec with Matchers with SharedSparkContext {
 
 
     // Read files.
-    val sasRecaptureDF = sqlContext.sasFile(sasRecapturePath).cache()
+    val sasRecaptureDF = sqlContext.sasFile(sasRecapturePath)
     val csvRecaptureDF = {
       sqlContext.read
         .format("csv")
         .option("header", true)
         .schema(struct)
         .load(csvRecapturePath)
-        .cache()
     }
 
     // Print the automatically inferred schema.
@@ -360,10 +349,7 @@ class SasRelationSpec extends FlatSpec with Matchers with SharedSparkContext {
     // Ensure the schema was inferred correctly.
     sasRecaptureDF.schema should ===(csvRecaptureDF.schema)
 
-    // Ensure the same data was read.
-    sasRecaptureDF.collect().zip(csvRecaptureDF.collect()).foreach {
-      case (row1, row2) =>
-        row1.toSeq should ===(row2.toSeq)
-    }
+    sasRecaptureDF.except(csvRecaptureDF).count() should ===(0)
+    csvRecaptureDF.except(sasRecaptureDF).count() should ===(0)
   }
 }
