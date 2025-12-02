@@ -58,6 +58,10 @@ fork in Test := true
 
 //skip test during assembly
 test in assembly := {}
+assemblyJarName in assembly := s"${name.value}-${version.value}-s_${scalaBinaryVersion.value}.jar"
+artifactName := { (sv: ScalaVersion, module: ModuleID, art: Artifact) =>
+  s"${name.value}-${module.revision}-s_${sv.binary}.${art.extension}"
+}
 assemblyMergeStrategy in assembly := {
   case PathList("META-INF", "versions", _ @ _*) => MergeStrategy.first
   case PathList("META-INF", "MANIFEST.MF") => MergeStrategy.discard
