@@ -28,7 +28,18 @@ matrix:
         - 2.12.11
       jdk:
         - openjdk11
-
+    - name: Spark 3.5.0 (Java 8)
+      env: SPARK_VERSION=3.5.0
+      scala:
+        - 2.13.12
+      jdk:
+        - openjdk8
+    - name: Spark 3.5.0 (Java 11)
+      env: SPARK_VERSION=3.5.0
+      scala:
+        - 2.13.12
+      jdk:
+        - openjdk11
 script:
   - sbt -jvm-opts travis/jvmopts.test    ++$TRAVIS_SCALA_VERSION -Dspark.version=$SPARK_VERSION scalastyle
   - sbt -jvm-opts travis/jvmopts.test    ++$TRAVIS_SCALA_VERSION -Dspark.version=$SPARK_VERSION test
