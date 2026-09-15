@@ -1,7 +1,7 @@
 import xerial.sbt.Sonatype.sonatypeCentralHost
 
 name := "spark-sas7bdat"
-version := "3.0.0"
+version := "3.1.0"
 organization := "io.github.saurfang"
 licenses := Seq("Apache-2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0.html"))
 
@@ -28,6 +28,7 @@ developers := List(
 
 scalaVersion := "2.13.12"
 crossScalaVersions := Seq("2.11.12", "2.12.11", "2.13.12")
+autoScalaLibrary := false
 
 lazy val sparkVersionValue = Def.setting[String] {
   sys.props.getOrElse("spark.version", scalaBinaryVersion.value match {
@@ -41,13 +42,15 @@ scalacOptions ++= Seq("-target:jvm-1.8")
 javacOptions ++= Seq("-source", "1.8", "-target", "1.8")
 
 libraryDependencies ++= Seq(
+  "org.scala-lang" % "scala-library" % scalaVersion.value % "provided",
+
   // spark
   "org.apache.spark" %% "spark-core" % sparkVersionValue.value % "provided",
   "org.apache.spark" %% "spark-sql" % sparkVersionValue.value % "provided",
 
   // main
   "com.epam" % "parso" % "2.0.14",
-  "org.apache.logging.log4j" %% "log4j-api-scala" % "12.0",
+  //"org.apache.logging.log4j" %% "log4j-api-scala" % "12.0",
 
   // testing
   "org.scalatest" %% "scalatest" % "3.1.2" % "test",
@@ -81,10 +84,10 @@ fork in Test := true
 
 //skip test during assembly
 test in assembly := {}
-assemblyJarName in assembly := s"${name.value}-${version.value}-s_${scalaBinaryVersion.value}.jar"
-artifactName := { (sv: ScalaVersion, module: ModuleID, art: Artifact) =>
-  s"${name.value}-${module.revision}-s_${sv.binary}.${art.extension}"
-}
+//assemblyJarName in assembly := s"${name.value}-${version.value}-s_${scalaBinaryVersion.value}.jar"
+//artifactName := { (sv: ScalaVersion, module: ModuleID, art: Artifact) =>
+//  s"${name.value}-${module.revision}-s_${sv.binary}.${art.extension}"
+//}
 assemblyMergeStrategy in assembly := {
   case PathList("META-INF", "versions", _ @ _*) => MergeStrategy.first
   case PathList("META-INF", "MANIFEST.MF") => MergeStrategy.discard

@@ -8,3 +8,4 @@
 spark-warehouse/*
 target/*
 *.jar
+/.bsp/sbt.json
